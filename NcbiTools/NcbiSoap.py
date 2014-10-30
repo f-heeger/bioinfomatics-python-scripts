@@ -67,7 +67,8 @@ class NcbiSoapMap(dict):
             self[row[0]] = row[1]
     
     def save(self):
-        csv.writer(open(self.cachePath, "wb")).writerows(zip(self.keys(), self.values()))
+        csv.writer(open(self.cachePath, "wb")).writerows(zip(self.keys(), 
+                                                             self.values()))
 
 class NcbiSoapBatchMap(NcbiSoapMap):
     """Mapping object that will take a list of key and return a list of values 
@@ -80,14 +81,19 @@ class NcbiSoapBatchMap(NcbiSoapMap):
             
             for tries in range(self.retry+1):
                 try:
-                    response = self.requestFunction(",".join([str(k) for k in ncbiReqList]))
+                    response = self.requestFunction(",".join([str(k) for k 
+                                                    in ncbiReqList]))
                     break
                 except Exception as e:
                     if tries == self.retry:
-                        raise ValueError("Problem with key: '%s'. It raised an error: %s" % (key, str(e)))
+                        raise ValueError("Problem with key: '%s'. "
+                                         "It raised an error: %s" 
+                                         % (key, str(e)))
                     else:
                         time.sleep(1)
-                        sys.stderr.write("Problem with key: '%s'. It raised an error: %s\n Will try again...\n" % (key, str(e)) )
+                        sys.stderr.write("Problem with key: '%s'. "
+                                         "It raised an error: %s\n "
+                                         "Will try again...\n" % (key, str(e)) )
             self.readResponse(response, keyList)
         return [dict.__getitem__(self, key) for key in keyList]
 
@@ -108,6 +114,11 @@ class SpeciesName2TaxId(NcbiSoapMap):
         self[key] = resp.IdList[0][0]
 
 class LineageMap(NcbiSoapMap):
+    """Map NCBI taxonomy IDs to full lineage information from NCBI taxonomy.
+    
+    Returns a list of tuples of the form (<Rank>, <Taxonomy Node ID>, 
+    <Taxonomy Node Name>).
+    """
     wsdlUrl = "http://www.ncbi.nlm.nih.gov/soap/v2.0/efetch_taxon.wsdl"
     
     def requestFunction(self, key):
@@ -131,12 +142,14 @@ class LineageMap(NcbiSoapMap):
         for row in csv.reader(open(self.cachePath, "rb")):
             tax, rank, lTax, lName = row
             if tax not in self:
-                self[tax] = {}
-            self[tax][rank] = (lTax, lName)
+                self[tax] = []
+            self[tax].append((rank, lTax, lName))
 
 
 class NuclId2TaxIdMap(NcbiSoapMap):
+    """Map NCBI nucleotide GIs to the taxonomy ID of the species they come from.
     
+    """
     wsdlUrl = "http://www.ncbi.nlm.nih.gov/soap/v2.0/efetch_seq.wsdl"
     
     def requestFunction(self, key):
@@ -145,12 +158,15 @@ class NuclId2TaxIdMap(NcbiSoapMap):
     
     def readResponse(self, resp, key):
         if len(resp) < 1:
-            raise KeyError("'%s' is not in the dictionary. NCBI response did not contain taxonomy information.")
+            raise KeyError("'%s' is not in the dictionary. "
+                           "NCBI response did not contain taxonomy information.")
         if len(resp) > 1:
             self[key] = None
-            raise ValueError("Problem with key: %s. It got multiple answers." % key)
+            raise ValueError("Problem with key: %s. "
+                             "It got multiple answers." % key)
         
-        #if there is only one feature for some reason the feature list is not actually a list
+        #if there is only one feature for some reason 
+        # the feature list is not actually a list
         #here is a work around:
         if type(resp["GBSet"][0]["GBSeq_feature-table"][0]) != type([]):
             feature_list = [resp["GBSet"][0]["GBSeq_feature-table"][0]]
@@ -160,13 +176,20 @@ class NuclId2TaxIdMap(NcbiSoapMap):
             if feature["GBFeature_key"] == "source":
                 for qual in feature["GBFeature_quals"][0]:
                     if qual["GBQualifier_name"] == "db_xref":
-                        match = re.match("taxon:(\d+)", qual["GBQualifier_value"])
+                        match = re.match("taxon:(\d+)", 
+                                         qual["GBQualifier_value"])
                         if match:
                             self[key] = match.group(1)
                             return True
-        raise KeyError("'%s' is not in the dictonary. NCBI response did not contain taxonomy inforamtion. NCBI response was:\n%s" % (key, str(resp)[:100]))
+        raise KeyError("'%s' is not in the dictonary. "
+                       "NCBI response did not contain taxonomy inforamtion. "
+                       "NCBI response was:\n%s" % (key, str(resp)[:100]))
 
 class NuclId2SpeciesNameMap(NcbiSoapMap):
+    """Map NCBI nucleotide GIs to the scientific name of the species they 
+    come from.
+    
+    """
     
     wsdlUrl = "http://www.ncbi.nlm.nih.gov/soap/v2.0/efetch_seq.wsdl"
     
@@ -176,40 +199,32 @@ class NuclId2SpeciesNameMap(NcbiSoapMap):
     
     def readResponse(self, resp, key):
         if len(resp) < 1:
-            raise KeyError("'%s' is not in the dictionary. NCBI response did not contain taxonomy information.")
+            raise KeyError("'%s' is not in the dictionary. "
+                           "NCBI response did not contain taxonomy information.")
         if len(resp) > 1:
             self[key] = None
             import pdb; pdb.set_trace()
-            raise ValueError("Problem with key: %s. It got multiple answers." % key)
+            raise ValueError("Problem with key: %s. "
+                             "It got multiple answers." % key)
         organism = resp[0][0].GBSeq_organism
         if "Unknown" in organism:
             raise ValueError("Source of sequence is given as 'unknown' in NCBI")
         self[key] = organism
         
 
-#class NuclId2TaxIdBatchMap(NuclId2SpeciesNameMap):
-#    def readResponse(self, resp, keyList):
-#        if len(resp) < 1:
-#            raise KeyError("'%s' is not in the dictionary. NCBI response did not contain taxonomy information.")
-#        gbset = r["GBSet"]
-#        if len(gbset[0]) == 1:
-#            gbset = 
-
-
-#class ProtI
-class DebugPlugin(plugin.MessagePlugin):
-    def received(self, context):
-        import pdb; pdb.set_trace()
-
-
-class InitDebugPlugin(plugin.InitPlugin):
-    def initialized(self, context):
-        import pdb; pdb.set_trace()
 
 
 if __name__ == "__main__":
     import logging
     import re
+
+    class DebugPlugin(plugin.MessagePlugin):
+    def received(self, context):
+        import pdb; pdb.set_trace()
+
+    class InitDebugPlugin(plugin.InitPlugin):
+        def initialized(self, context):
+            import pdb; pdb.set_trace()
 
     def lineageTest(a,b):
         for rowA, rowB in zip(a, b):
@@ -281,7 +296,8 @@ if __name__ == "__main__":
         except Exception as e:
             import traceback
             sys.stderr.write(traceback.format_exc())
-            sys.stdout.write("\tFailed. Exception raised: \"%s\". See log file for more information\n" % str(e))
+            sys.stdout.write("\tFailed. Exception raised: \"%s\". "
+                             "See log file for more information\n" % str(e))
             continue
         sys.stdout.write(tId)
         if tId == value:
@@ -306,7 +322,7 @@ if __name__ == "__main__":
     if lineageTest(ecoli, ealbertii):
         sys.stdout.write("OK\n")
     else:
-        sys.stdout.write("Failed. Lineages be the same\n")
+        sys.stdout.write("Failed. Lineages sould be the same\n")
     sys.stdout.write("mouse <-> rat\t")
     mouse = lineageMap[10090]
     rat = lineageMap[10116]
