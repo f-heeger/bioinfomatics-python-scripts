@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import sys
 from optparse import OptionParser
 
@@ -26,11 +28,14 @@ Optinal sequences with more Ns can be written to a different stream.
         strIt2 = parse(inStream2, fileForm)
     while True:
         t+=1
-        r1 = strIt1.next()
+        try:
+            r1 = strIt1.next()
+        except StopIteration:
+            break
         remove = r1.seq.count("N") > threshold
         if inStream2 is None:
             r2 = strIt2.next()
-            remove &= r2.seq.count("N") > threshold
+            remove |= r2.seq.count("N") > threshold
         if remove:
             n+=1
         else:
