@@ -33,14 +33,14 @@ Optinal sequences with more Ns can be written to a different stream.
         except StopIteration:
             break
         remove = r1.seq.count("N") > threshold
-        if inStream2 is None:
+        if not inStream2 is None:
             r2 = strIt2.next()
             remove |= r2.seq.count("N") > threshold
         if remove:
             n+=1
         else:
             outStream1.write(r1.format(fileForm))
-            if inStream2 is None:
+            if not inStream2 is None:
                 outStream2.write(r2.format(fileForm))
     return t, n
     
@@ -90,7 +90,7 @@ if __name__ == "__main__":
     if len(args) > 1:
         paired = True
         sys.stderr.write("Running in paired mode\n")
-        sys.stderr.write("Reading from file: %s\n" % args[1])
+        sys.stderr.write("Reading from second file: %s\n" % args[1])
         inStream2 = tOpen(args[1])
         splitName2 = args[1].rsplit(".", maxsplit)
         outStream2 = tOpen("%s_Ns_removed.%s" % (splitName2[0], 
