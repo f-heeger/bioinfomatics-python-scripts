@@ -5,30 +5,30 @@ import re
 #based on Uniprot retrieval example on 
 # http://www.uniprot.org/help/programmatic_access
 
-from MultiCachedDict import MultiCachedDict
+from MultiCachedDict import MultiCachedDict, SqliteCache, NotWritableError
 
 class CachedUniportIdMap(MultiCachedDict):
     def __init__(self, dbpath, source="ACC", target="P_REFSEQ_AC", retry=0, 
-                 delay=1, contact=None):
+                 delay=1, contact=None, returnNone=False):
         
         dbMap = SqliteCache(dbpath)
-        uniprotMap = UniprotIdMap(source, target, retry, delay, contact)
+        uniprotMap = UniprotIdMap(source, target, retry, delay, contact, 
+                                  returnNone)
         
         MultiCachedDict.__init__(self, None, [dbMap, uniprotMap])
 
 class UniprotIdMap(object):
-    writable = False #this is not a writable dict
 
     """Base class for a ID dictionary based on uniprot web service
     """
     def __init__(self, source="ACC", target="P_REFSEQ_AC", retry=0, 
-                 delay=1, contact=None):
+                 delay=1, contact=None, returnNone=False):
         """Constructor for ID dictionary
         
            source and target need to be abbreviations according to definition
            of the uniprot web service.
            retry and delay define retry behavior. On failure to connect to 
-           uniprot the object will make retry attempts with delay in seconds 
+           uniprot the object will make retry attempts with delay seconds 
            between them.
            contact should be an e-mail where uniprot can contact you for 
            debugging.
@@ -38,6 +38,7 @@ class UniprotIdMap(object):
         self.retry = retry
         self.delay = delay
         self.contact = contact
+        self.returnNone = returnNone
         
         self.response = None
         
@@ -61,8 +62,12 @@ class UniprotIdMap(object):
         return self.readResponse(key)
             
     def __setitem__(self, key, value):
-        raise NotImplemented("Values can not be set, because this "
-                             "dictionary is based on Uniprot web service.")
+        raise NotWritableError("Values can not be set, because this "
+                               "dictionary is based on Uniprot web service.")
+    
+    def __delitem__(self, key):
+        raise NotWritableError("Values can not be deleted, because this "
+                               "dictionary is based on Uniprot web service.")
     
     def requestFunction(self, key):
         url = "http://www.uniprot.org/mapping/"
@@ -83,15 +88,19 @@ class UniprotIdMap(object):
     def readResponse(self, key):
         lines = self.response.readlines()
         if len(lines) < 2:
+            if self.returnNone:
+                return None
             raise KeyError("Uniprot web service did not return information for "
                            "key: '%s'" % key)
         if len(lines) > 2:
-            raise ValueError("Response from Uniprot has more than two lines.")
+            raise ValueError("Response from Uniprot has more than two lines. "
+                             "Response was :\n%s" % "\n".join(lines))
         # line 0 is the header
         key, value = lines[1].strip().split()
         self.response = None
         return value
         
+
 
 
 class UniprotInterface(object):
@@ -141,6 +150,24 @@ class UniprotInterface(object):
             request.add_header('User-Agent', 'Python %s' % self.contact)
         return urllib2.urlopen(request)
 
+    def readCazyInfo(self):
+        if self.response is None:
+            raise ValueError("No response available.")
+        lines = self.response.readlines()
+        if len(lines) < 2:
+            raise KeyError("Uniprot web service did not return information for "
+                           "ID: '%s'" % self.uid)
+        l=0
+        #skip lines until one that starts with "DR    CAZy"
+        while l < len(lines) and not lines[l].startswith("DR   CAZy"):
+            l+=1
+        if l >= len(lines):
+            # if the while loop run all the way ne cazy info was found
+            raise KeyError("Uniprot web service did not return CAZy information"
+                           " for ID: '%s'" % self.uid)
+        _, cId, cName = lines[l].strip(".\n").split(";")
+        return {"id": cId, "name": cName}
+    
     def readGoInfo(self):
         if self.response is None:
             raise ValueError("No response available.")
@@ -149,7 +176,7 @@ class UniprotInterface(object):
             raise KeyError("Uniprot web service did not return information for "
                            "ID: '%s'" % self.uid)
         l=0
-        #skip lines until the first that starts with DR
+        #skip lines until the first that starts with "DR"
         while lines[l][:2] != "DR":
             l+=1
         goInfo = []
@@ -181,6 +208,12 @@ if __name__ == "__main__":
                              ]
                   ),
                 ]
+    cazyTestData = [("A2QYE5", {"id": "GH28", 
+                                "name": "Glycoside Hydrolase Family 28"}),
+                    ("A0A077W732", None),
+                    ("Q39Z37", {"id": "GT2", 
+                                "name": "Glycosyltransferase Family 2"}),
+                   ]
 
     print("Testing Uniprot ID map")
     umap = UniprotIdMap("P_GI","ACC", retry=3, contact="fheeger@mi.fu-berlin.de")
@@ -189,7 +222,14 @@ if __name__ == "__main__":
     print("Testing Uniprot Interface")
     uniprot = UniprotInterface(contact="fheeger@mi.fu-berlin.de")
     print("Interface object build successful")
-    print("Testing go info")
-    for uid, result in goTestData:
+#    print("Testing go info")
+#    for uid, result in goTestData:
+#        uniprot.getData(uid)
+#        print uniprot.readGoInfo()
+    print("Testing CAZy info")
+    for uid, result in cazyTestData:
         uniprot.getData(uid)
-        print uniprot.readGoInfo()
+        try:
+            print uniprot.readCazyInfo()
+        except KeyError as e:
+            print e
