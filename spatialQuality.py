@@ -68,30 +68,6 @@ def makeDataFrame(stats):
                                "qual": q, "n_count": n})
     return data
 
-#def plotStatsAlpha(data, outFolder, prop="qual", prefix="",
-#              high=0.9, low=0.1, pdf=False):
-#    #overview plot
-#    p = ggplot.ggplot(data) 
-#    p = p + ggplot.aes_string(x="x", y="y", alpha=prop) \
-#        + ggplot.geom_point(size=0.5) \
-#        + ggplot.facet_wrap(robjects.Formula("~ tile")) \
-#        + ggplot.scale_alpha(range=robjects.FloatVector([high, low])) \
-#        + ggplot.ggtitle("Overview %s" % (prop))
-#    fileName = "%soverview_%s.png" % (prefix, prop)
-#    p.save(os.path.join(outFolder, fileName), scale=2)
-#    
-#    #detail plots
-#    for t in set(stats["tile"]):
-#        p = ggplot.ggplot(data.rx(data.rx2("tile").ro == t, True))
-#        p = p + ggplot.aes_string(x="x", y="y", alpha=prop) \
-#            + ggplot.geom_point(size=1) \
-#            + ggplot.scale_alpha(range=robjects.FloatVector([high, low])) \
-#            + ggplot.ggtitle("%i %s" % (t, prop))
-#        fileName = "%s%i_%s.png" % (prefix, t, prop)
-#        p.save(os.path.join(outFolder, fileName), scale=2)
-#        if pdf:
-#            fileName = "%s%i_%s.pdf" % (prefix, t, prop)
-#            p.save(os.path.join(outFolder, fileName), scale=2)
 
 def plotStats(data, outFolder, tiles, prop="qual", prefix="",
               high="yellow", low="blue", pdf=False, detail=True):
@@ -110,6 +86,7 @@ def plotStats(data, outFolder, tiles, prop="qual", prefix="",
     
     #detail plots
     if detail:
+        detailFolder = os.path.join(outFolder, "detailPlots")
         for t in tiles:
             p = ggplot.ggplot(data.rx(data.rx2("tile").ro == t, True))
             p = p + ggplot.aes_string(x="x", y="y", col=prop) \
@@ -121,10 +98,10 @@ def plotStats(data, outFolder, tiles, prop="qual", prefix="",
                 fileName = "%s_%i_%s.png" % (prefix, t, prop)
             else:
                 fileName = "%i_%s.png" % (t, prop)
-            p.save(os.path.join(outFolder, fileName), scale=2)
+            p.save(os.path.join(detailFolder, fileName), scale=2)
             if pdf:
                 fileName = "%s%i_%s.pdf" % (prefix, t, prop)
-                p.save(os.path.join(outFolder, fileName), scale=2)
+                p.save(os.path.join(detailFolder, fileName), scale=2)
 
 def writeStats(s, outFile):
     with open(outFile, "w") as out:
@@ -143,7 +120,8 @@ def main(inStream, outFolder, name, pdf, detail, ncount, log):
         dataFrame = makeDataFrame(stats)
         log.write("Plotting quality...\n")
         tiles = set(stats["tile"])
-        plotStats(dataFrame, outFolder, tiles, prefix=name, prop="qual",pdf=pdf)
+        plotStats(dataFrame, outFolder, tiles, prefix=name, prop="qual", 
+                  pdf=pdf, detail=detail)
         if ncount:
             log.write("Plotting n counts...\n")
             plotStats(dataFrame, outFolder, tiles, prefix=name, prop="n_count", 
@@ -194,6 +172,10 @@ if __name__ == "__main__":
     if not os.path.exists(options.outFolder):
         log.write("Creating output folder...\n")
         os.makedirs(options.outFolder)
+    if options.detail:
+        detailFolder = os.path.join(options.outFolder, "detailPlots")
+        if not os.path.exists(detailFolder):
+            os.makedirs(detailFolder)
     
     if len(args) == 0:
         log.write("Reading from stdin...\n")
