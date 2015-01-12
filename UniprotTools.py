@@ -1,6 +1,7 @@
 import urllib
 import urllib2
 import re
+import gzip
 
 #based on Uniprot retrieval example on 
 # http://www.uniprot.org/help/programmatic_access
@@ -9,13 +10,57 @@ from MultiCachedDict import MultiCachedDict, SqliteCache, NotWritableError
 
 class CachedUniprotIdMap(MultiCachedDict):
     def __init__(self, dbpath, source="ACC", target="P_REFSEQ_AC", retry=0, 
-                 delay=1, contact=None, returnNone=False):
+                 delay=1, contact=None, returnNone=False, tablename=None, 
+                 keyname=None, valuename=None):
         
-        dbMap = SqliteCache(dbpath)
+        self.source = source
+        self.target = target
+        
+        dbMap = SqliteCache(dbpath, table=tablename, key=keyname, 
+                            value=valuename)
         uniprotMap = UniprotIdMap(source, target, retry, delay, contact, 
                                   returnNone)
         
         MultiCachedDict.__init__(self, None, [dbMap, uniprotMap])
+        
+    def initWithUniprotFlatFile(filepath, gzip=True):
+        """
+        Initialize the database cache with the content of a uniprot flat file.
+        
+        This will only work if source and target ID type a part of the 
+        flat file. If the file is not gzipped this has to be specified.
+        """
+        
+        if not gzip:
+            tOpen = open
+        else:
+            tOpen = gzip.open
+        
+        name2pos = {"ACC" : 0, "ID" : 1, "P_ENTREZGENEID" : 2, 
+                    "P_REFSEQ_AC" : 3, "P_GI" : 4, "PDB_ID" : 5, "NF100" : 7,
+                    "NF90" : 8, "NF50" : 9, "UPARC" : 10, "PIR" : 11, 
+                    "MIM_ID" : 13, "UNIGENE_ID" : 14, "EMBL_ID" : 16, 
+                    "EMBL" : 17, "ENSEMBL_ID" : 18, "ENSEMBL_TRS_ID" : 19,
+                    "ENSEMBL_PRO_ID" : 20, }
+        if self.target not in name2pos:
+            raise ValueError("Map target '%s' is not available from flat file."
+                             % self.target)
+        targetPos = name2pos[target]
+        if self.source not in name2pos:
+            raise ValueError("Map source '%s' is not available from flat file."
+                             % self.source)
+        sourcePos = name2pos[source]
+        
+        
+        mapDict = {}
+        for line in tOpen(filepath):
+            arr = line.strip().split("\t")
+            if not arr[targetPos] or not arr[sourcePos]:
+                continue
+            mapDict[arr[sourcePos]] = arr[targetPos]
+        self.cacheList[0] = SqliteCache(filePath=self.cacheList[0].filepath, 
+                                        indict=mapDict,
+                                        **self.cacheList[0].conf)
 
 class UniprotIdMap(object):
 
