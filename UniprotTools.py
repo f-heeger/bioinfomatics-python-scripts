@@ -7,7 +7,7 @@ import re
 
 from MultiCachedDict import MultiCachedDict, SqliteCache, NotWritableError
 
-class CachedUniportIdMap(MultiCachedDict):
+class CachedUniprotIdMap(MultiCachedDict):
     def __init__(self, dbpath, source="ACC", target="P_REFSEQ_AC", retry=0, 
                  delay=1, contact=None, returnNone=False):
         
