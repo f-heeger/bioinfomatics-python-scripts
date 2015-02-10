@@ -28,8 +28,8 @@ def readFasta(inStream):
 if __name__ == "__main__":
 
     usage = "usage: %prog [options] input.fasta[.gz]"
-    epi = "Computes basic assembly statistics given that input.fasta is a multi"
-          " fasta file with one contig per record."
+    epi = "Computes basic assembly statistics given that input.fasta is a" \
+          "multi fasta file with one contig per record."
     parser = OptionParser(usage, epilog=epi)
     
     if gzImported:
