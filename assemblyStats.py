@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     usage = "usage: %prog [options] input.fasta[.gz]"
     epi = "Computes basic assembly statistics given that input.fasta is a" \
-          "multi fasta file with one contig per record."
+          " multi fasta file with one contig per record."
     parser = OptionParser(usage, epilog=epi)
     
     if gzImported:
@@ -37,7 +37,9 @@ if __name__ == "__main__":
         parser.add_option("-z", "--gzip",
                            action="store_true", dest="gzip",
                            default=False, help="input file is gzipped",)
-
+        parser.add_option("-t", "--tabular",
+                           action="store_true", dest="tabular",
+                           default=False, help="write tabular output",)
     (options, args) = parser.parse_args()
     
 
@@ -49,13 +51,18 @@ if __name__ == "__main__":
     
     tab = readFasta(inStream)
     n50, l50 = assemblyStats(tab)
-    print("Number of contigs:\t%i" % len(tab))
-    print("L50 (N50 length):\t%i" % l50)
-    print("N50 (N50 rank):\t%i" % n50)
     lenSum = sum([c[1] for c in tab])
     maxLen = max([c[1] for c in tab])
     minLen = min([c[1] for c in tab])
-    print("Total length of all contigs:\t%i" % lenSum)
-    print("Longest contig:\t%i" % maxLen)
-    print("Shortest contig:\t%i" % minLen)
+    if options.tabular:
+        print("%s\t%i\t%i\t%i\t%i\t%i\t%i" 
+              % (args[0], len(tab), l50, n50, lenSum, maxLen, minLen))
+    else:
+        print("Number of contigs:\t%i" % len(tab))
+        print("L50 (N50 length):\t%i" % l50)
+        print("N50 (N50 rank):\t%i" % n50)
+        print("Total length of all contigs:\t%i" % lenSum)
+        print("Longest contig:\t%i" % maxLen)
+        print("Shortest contig:\t%i" % minLen)
+        print("Shortest contig:\t%i" % minLen)
 
