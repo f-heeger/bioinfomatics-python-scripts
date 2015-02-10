@@ -207,7 +207,7 @@ class UniprotInterface(object):
         while l < len(lines) and not lines[l].startswith("DR   CAZy"):
             l+=1
         if l >= len(lines):
-            # if the while loop run all the way ne cazy info was found
+            # if the while loop run all the way no cazy info was found
             raise KeyError("Uniprot web service did not return CAZy information"
                            " for ID: '%s'" % self.uid)
         _, cId, cName = lines[l].strip(".\n").split(";")

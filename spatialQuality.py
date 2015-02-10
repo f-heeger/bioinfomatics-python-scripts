@@ -139,7 +139,7 @@ if __name__ == "__main__":
     parser.add_option("-o", "--output-folder",
                       action="store", type="string", dest="outFolder",
                       default="spatialQual", 
-                      help="write results to folder X [default: ./saptialQual]",
+                      help="write results to folder X [default: ./spatialQual]",
                       metavar="X")
     if gzImported:
         parser.add_option("-z", "--gzip",
