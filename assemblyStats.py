@@ -64,5 +64,3 @@ if __name__ == "__main__":
         print("Total length of all contigs:\t%i" % lenSum)
         print("Longest contig:\t%i" % maxLen)
         print("Shortest contig:\t%i" % minLen)
-        print("Shortest contig:\t%i" % minLen)
-
