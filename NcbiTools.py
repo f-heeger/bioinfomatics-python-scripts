@@ -5,6 +5,12 @@ import time
 from suds.client import Client as SoapClient
 from suds import plugin
 
+from MultiCachedDict import MultiCachedDict
+
+class CacheNotUsedError(Exception):
+    """Exception that is raised if the user tries to do cache operations 
+    (save, load) on a Map where the cache is not active"""
+
 class NcbiSoapMap(dict):
     """Base class for a dictonary relying in NCBI soap interface for assignments.
     
@@ -18,7 +24,7 @@ class NcbiSoapMap(dict):
     The local dictonary can be saved to the hard drive as csv file and loaded
     when an object is copnstructed.
     """
-    def __init__(self, indict={}, cachePath=None, retry=0):
+    def __init__(self, indict={}, cachePath=None, retry=0, useCache=True):
         """Constuctor for mapping object.
         
         A dictonary of already known assignments can be passed via the indict
@@ -28,16 +34,19 @@ class NcbiSoapMap(dict):
         once).
         """
         dict.__init__(self, indict)
-        if not cachePath:
-            #if no cache path was given default to the class name
-            cachePath = self.__class__.__name__+".csv"
-        self.cachePath = cachePath
+        self.useCache = useCache
+        if useCache:
+            if not cachePath:
+                #if no cache path was given default to the class name
+                cachePath = self.__class__.__name__+".csv"
+            self.cachePath = cachePath
+            try:
+                self.load()
+            except IOError:
+                pass
+                #this happens if no cache was saved previously
         self.retry = retry
-        try:
-            self.load()
-        except IOError:
-            pass
-            #this happens if no cache was saved previously
+       
         
     def __getitem__(self, key):
         if key not in self:
@@ -63,10 +72,14 @@ class NcbiSoapMap(dict):
                              "Use a more specific subclass.")
             
     def load(self):
+        if not self.useCache:
+            raise CacheNotUsedError()
         for row in csv.reader(open(self.cachePath, "rb")):
             self[row[0]] = row[1]
     
     def save(self):
+        if not self.useCache:
+            raise CacheNotUsedError()
         csv.writer(open(self.cachePath, "wb")).writerows(zip(self.keys(), 
                                                              self.values()))
 
@@ -132,6 +145,8 @@ class LineageMap(NcbiSoapMap):
         self[key] = m
         
     def save(self):
+        if not self.useCache:
+            raise CacheNotUsedError()
         tab = []
         for tax, m in self.items():
             for rank, (lTax, lName) in m.items():
@@ -139,6 +154,8 @@ class LineageMap(NcbiSoapMap):
         csv.writer(open(self.cachePath, "wb")).writerows(tab)
     
     def load(self):
+        if not self.useCache:
+            raise CacheNotUsedError()
         for row in csv.reader(open(self.cachePath, "rb")):
             tax, rank, lTax, lName = row
             if tax not in self:
@@ -212,7 +229,9 @@ class NuclId2SpeciesNameMap(NcbiSoapMap):
         self[key] = organism
         
 
-
+#class NuclId2TaxIdCachedMap(MultiCachedDict):
+#    def __init__(self):
+#        ncbi = 
 
 if __name__ == "__main__":
     import logging
@@ -259,6 +278,13 @@ if __name__ == "__main__":
                          
     
     print "Running Ncbi Soap Tool tests"
+    
+    print "testing cache usage option"
+    baseMap = NcbiSoapMap(cacheUsed=False)
+    try:
+        baseMap.save()
+    except CacheNotUsedError:
+        print "Deactivation of cache is working as expected"
     
     print "testing scientific name to taxonomy ID map:"
     sciName2taxId = SpeciesName2TaxId()
