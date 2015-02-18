@@ -280,7 +280,7 @@ if __name__ == "__main__":
     print "Running Ncbi Soap Tool tests"
     
     print "testing cache usage option"
-    baseMap = NcbiSoapMap(cacheUsed=False)
+    baseMap = NcbiSoapMap(useCache=False)
     try:
         baseMap.save()
     except CacheNotUsedError:
