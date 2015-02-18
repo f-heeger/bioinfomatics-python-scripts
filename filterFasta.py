@@ -157,18 +157,24 @@ if __name__ == "__main__":
         parser.error("Options -e can only be used with -i.")
     if (options.random and options.neg):
         parser.error("Negative mode does not work with random mode.")
-    if len(args) < 1:
-        parser.error("Please give at least an input file.")
-    elif len(args) == 1:
-        #if no output file was given write to std out
-        out = sys.stdout
-    else:
-        out = args[1]
     
     if options.quiet:
         log = None
     else:
         log = sys.stderr
+        
+    if len(args) < 1:
+        if gzImported and options.gzip:
+            parser.error("Pipe mode (no input file argument) does not work together with -z (gzipped input).")
+        log.write("NOTE: Running in pipe mode. Witing for input from stdin.\n")
+        log.write("Will be writing to stdout.\n")
+        out = sys.stdout
+    elif len(args) == 1:
+        #if no output file was given write to std out
+        log.write("Will be writing to stdout.\n")
+        out = sys.stdout
+    else:
+        out = args[1]
     
     if len(args)>2:
         if log:
@@ -176,8 +182,9 @@ if __name__ == "__main__":
     if options.neg:
         if log:
             log.write("NOTE: Running in negative mode.\n")
-    idList = []
+    idList = None
     if options.idList:
+        idList = []
         try:
             iListFile = open(options.idList)
             for line in iListFile:
@@ -195,7 +202,9 @@ if __name__ == "__main__":
         elif idList:
             log.write("Using list of IDs to filter.\n")
                     
-    if gzImported and options.gzip:
+    if len(args) == 0:
+        inStream = sys.stdin
+    elif gzImported and options.gzip:
         inStream = gzip.open(args[0], "r")
     else:
         inStream = open(args[0], "r")
@@ -204,5 +213,6 @@ if __name__ == "__main__":
         filterFasta(inStream, out, options.minLength, idList, options.random, 
                     options.fastq, options.regexp, options.neg, log=log)
     finally:
-        inStream.close()
+        if len(args) > 0:
+            inStream.close()
     
