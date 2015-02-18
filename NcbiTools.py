@@ -5,7 +5,7 @@ import time
 from suds.client import Client as SoapClient
 from suds import plugin
 
-from MultiCachedDict import MultiCachedDict
+from MultiCachedDict import MultiCachedDict, SqliteCache
 
 class CacheNotUsedError(Exception):
     """Exception that is raised if the user tries to do cache operations 
@@ -229,9 +229,12 @@ class NuclId2SpeciesNameMap(NcbiSoapMap):
         self[key] = organism
         
 
-#class NuclId2TaxIdCachedMap(MultiCachedDict):
-#    def __init__(self):
-#        ncbi = 
+class CachedNuclId2TaxIdMap(MultiCachedDict):
+    def __init__(self, dbPath):
+        ncbi = NuclId2TaxIdMap(useCache=False)
+        database = SqliteCache(filePath=dbPath, indict=None, table="gi2tax", 
+                               key="gi", value="tax")
+        MultiCachedDict.__init__(self, None, [database, ncbi])
 
 if __name__ == "__main__":
     import logging
@@ -356,5 +359,8 @@ if __name__ == "__main__":
         sys.stdout.write("Failed. Lineages should be different\n")
     else:
         sys.stdout.write("OK\n")
-
+    print "testing Cached gi to tax id mapping"
+    cGi2tax = CachedNuclId2TaxIdMap("/tmp/testDb.db")
+    print "Succsessfully build mapping object"
+    #TODO write test for functionality
     print "done testing"
