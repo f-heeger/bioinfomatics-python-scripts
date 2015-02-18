@@ -219,8 +219,8 @@ if __name__ == "__main__":
     import re
 
     class DebugPlugin(plugin.MessagePlugin):
-    def received(self, context):
-        import pdb; pdb.set_trace()
+        def received(self, context):
+            import pdb; pdb.set_trace()
 
     class InitDebugPlugin(plugin.InitPlugin):
         def initialized(self, context):
