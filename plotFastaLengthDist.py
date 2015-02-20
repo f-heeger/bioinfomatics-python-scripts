@@ -53,7 +53,7 @@ dev.off()
         p.stdin.write("%s\t%i\n" % (seqId, length))
     p.stdin.close()
     p.wait()
-    
+    os.remove("r_plot.tmp")
 
 if __name__ == "__main__":
 
@@ -97,8 +97,14 @@ if __name__ == "__main__":
     stats = getStats(inStream, fileType, sys.stderr)
     pdfPath = os.path.join(options.outFolder, "%s_lengthDist.pdf" \
                            % args[0].rsplit(".fast", 1)[0].rsplit("/", 1)[-1])
-    plotLengthDist(stats, pdfPath, options.marks, options.ylog)
-    
+    try:
+        plotLengthDist(stats, pdfPath, options.marks, options.ylog)
+    except OSError as e:
+        if e.errno == os.errno.ENOENT:
+            sys.stderr.write("Problem starting R to do the plotting\n")
+            exit(-1)
+        else:
+            raise
     #additionally write table of sequence ID and length to a file
     if options.textout:
         textPath = os.path.join(options.outFolder, 
