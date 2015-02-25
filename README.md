@@ -144,3 +144,16 @@ Simple cached dictionary. It uses only a `SqliteCache` (beside the normal RAM di
 Simple parser for Thermonuclear Blast standard output files.
 #### tntBlastParser 
 Generator that will yield one amplicon at a time in the form of a tuple. consisting of: (NCBI GI number, start of amplicon in the data base sequence, end of amplicon in the data base sequence, amplicon sequece)
+
+### EolTools
+Colelction of tools to query the [Encyclopedia of Life](eol.org)
+
+#### EolName2IdMap
+Dictionary that maps names to EOL IDs using the `search` EOL web service.
+Will return a list of IDs.
+Search parameters can be configured in the `config` dictionary.
+Note: exact search is switched on by default.
+
+#### EolInterface
+Loads data for an EOL entry once with the `page` EOL web service.
+Data is kepped in memory and can be querried directly in the `data` member of this class or by specialized functions.
