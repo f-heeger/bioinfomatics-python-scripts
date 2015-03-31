@@ -64,6 +64,74 @@ class SqliteCache(object):
     def items(self):
         return zip(self.keys(), self.values())
 
+class SqliteListCache(object):
+    
+    def __init__(self, filePath=None, indict=None, table="key2value", 
+                 key="key", value="value"):
+        if filePath is None:
+            self.filePath = self.__class__.__name__+".db"
+        else:
+            self.filePath = filePath
+        
+        self.conf = {"table": table, "key": key, "value": value}
+        
+        #connect to file with sqlite 
+        # and create the necessary db if it does not exist
+        self.conn = connect(self.filePath)
+#        self.conn = connect(":memory:")
+        c = self.conn.cursor()
+        c.execute("SELECT name FROM sqlite_master WHERE "
+                  "type='table' AND name='%(table)s'" % self.conf)
+        if c.fetchone() is None:
+            c.execute("CREATE TABLE %(table)s "
+                      "(%(key)s TEXT, %(value)s TEXT)" % self.conf)
+        self.conn.commit()
+        if not indict is None:
+            for key, valueList in indict:
+                param = zip([key]*len(valueList), valueList)
+                c.executemany("INSERT INTO %(table)s VALUES (?,?)" % self.conf,
+                              param)
+            self.conn.commit()
+        
+    def __del__(self):
+        self.conn.close()
+    
+    def __setitem__(self, key, valueList):
+        c = self.conn.cursor()
+        param = zip([key]*len(valueList), valueList)
+        c.executemany("INSERT INTO %(table)s VALUES (?,?)" % self.conf, param)
+        self.conn.commit()
+        
+    def __getitem__(self, key):
+        c = self.conn.cursor()
+        c.execute("SELECT %(value)s FROM %(table)s WHERE %(key)s=?" % self.conf, 
+                  (str(key),))
+        #fetchall returns tuple although they have only one element
+        res = [t[0] for t in c.fetchall()]
+        if len(res) == 0:
+            raise KeyError()
+        return res
+        
+    def __delitem__(self, key):
+        c = self.conn.cursor()
+        c.exceute("DELETE FROM %(table)s WHERE %(key)s=?" % self.conf, key)
+        self.conn.commit()
+        
+    def keys(self):
+        c = self.conn.cursor()
+        c.excecute("SELECT %(key)s FROM %(table)s" % self.conf)
+        return set(c.fetchall())
+        
+    def values(self):
+        c = self.conn.cursor()
+        r = []
+        for key in self.keys():
+            r.apend(self[key])
+        return r
+        
+    def items(self):
+        return zip(self.keys(), self.values())
+
 class MultiCachedDict(object):
     def __init__(self, indict=None, cacheList=[]):
         if indict is None:
@@ -119,7 +187,7 @@ class MultiCachedDict(object):
                 try:
                     del cache[key]
                 except NotWritableError:
-                    pass
+                    pass #TODO: should I propagate this up and not pass it silently?
                 except KeyError:
                     pass
         

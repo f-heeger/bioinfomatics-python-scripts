@@ -139,6 +139,8 @@ Module for multi-layer cached dictionaries. Multi-layer cache means that the dic
 Base class that implements the multi-layer cache.
 #### SqliteCache
 Cache class to use as a cache layer in a `MultiCachedDict`. It will use a sqlite3 database to implement a local, persistent mapping.
+#### SqliteListCache
+Same as `SqliteCache`, but can deal with values that are keys.
 #### PersistantDict
 Simple cached dictionary. It uses only a `SqliteCache` (beside the normal RAM dictionary) to save mappings between program calls.
  
