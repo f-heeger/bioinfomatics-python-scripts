@@ -113,10 +113,12 @@ Base class for querying NCBI via soap
 Map a scientific species name to a NCBI taxonomy ID
 #### LineageMap
 Map a NCBI taxonomy ID to the complete taxonomic lineage defined by the NCBI taxonomy tree. Return value will be a list of 3-tuples representing NCBI taxonomy nodes. The tuples will contain: rank, taxonomy ID, scientific name
+#### SingleLevelLineageMap
+Map a NCBI taxonomy ID to specific taxonomic level from the NCBI taxonomy tree. Return value will be a list of 3-tuples representing NCBI taxonomy nodes. The tuples will contain: rank, taxonomy ID, scientific name
 #### NuclId2TaxIdMap
 Map the GI number of a NCBI nucleotide record to the according NCBI taxonomy ID 
 #### NuclId2SpeciesNameMap
-Map the GI number of a NCBI nucleotide record to scientific name of the according species  
+Map the GI number of a NCBI nucleotide record to scientific name of the according species
 #### CachedNuclId2TaxIdMap
 Map the GI number of a NCBI nucleotide record to the according NCBI taxonomy ID. Use a sqlite3 database as persistent cache to reduce requests to NCBI 
 
@@ -128,7 +130,7 @@ Map protein IDs via the Uniprot mapping service. Uses a multi-layer cache (RAM a
 #### UniprotIdMap 
 Map proteins IDs via the Uniprot mapping service. Will send one request per mapping to Uniprot. Can be configured to map different ID types to each other as long as they are supported by Uniprot. 
 #### UniprotInterface
-Class to query the Uniprot web service. Comes with functions to read CAZy and Gene Ontology informations.  
+Class to query the Uniprot web service. Comes with functions to read CAZy and Gene Ontology informations.
  
 ### MultiCachedDict
 Module for multi-layer cached dictionaries. Multi-layer cache means that the dictionary will beside the normal python dictionary also have other cache layers, that will be queried one after another until a value for the key can be found. Cache layers should be ordered by speed.

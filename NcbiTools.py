@@ -83,6 +83,10 @@ class NcbiSoapMap(dict):
             raise CacheNotUsedError()
         csv.writer(open(self.cachePath, "wb")).writerows(zip(self.keys(), 
                                                              self.values()))
+                                                             
+    def __del__(self):
+        if self.useCache:
+            self.save()
 
 class NcbiSoapBatchMap(NcbiSoapMap):
     """Mapping object that will take a list of key and return a list of values 
@@ -150,7 +154,7 @@ class LineageMap(NcbiSoapMap):
             raise CacheNotUsedError()
         tab = []
         for tax, m in self.items():
-            for rank, (lTax, lName) in m.items():
+            for rank, lTax, lName in m:
                 tab.append([tax, rank, lTax, lName])
         csv.writer(open(self.cachePath, "wb")).writerows(tab)
     
@@ -163,6 +167,24 @@ class LineageMap(NcbiSoapMap):
                 self[tax] = []
             self[tax].append((rank, lTax, lName))
 
+class SingleLevelLineageMap(LineageMap):
+    """Map NCBI taxonomy ID to a certain taxonomic level.
+    
+    
+    Returns a list of tuples of the form (<Rank>, <Taxonomy Node ID>, 
+    <Taxonomy Node Name>).
+    """
+    
+    def __init__(self, level, indict={}, cachePath=None, retry=0, useCache=True):
+        NcbiSoapMap.__init__(self, indict, cachePath, retry, useCache)
+        self.level = level
+        
+    def readResponse(self, resp, key):
+        m = []
+        for r in resp.TaxaSet[0][0]["LineageEx"][0]:
+            if r["Rank"] == self.level:
+                m.append((r["Rank"], r["TaxId"], r["ScientificName"]))
+        self[key] = m
 
 class NuclId2TaxIdMap(NcbiSoapMap):
     """Map NCBI nucleotide GIs to the taxonomy ID of the species they come from.
