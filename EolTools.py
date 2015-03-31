@@ -2,10 +2,18 @@ from urllib2 import urlopen
 import json
 
 class EolName2IdMap(dict):
+    """Dictionary class to map names to EOL IDs
+    
+    Uses EOL web service 'search' to get information. Returns list of found IDs 
+    for the name.
+    """
     urlBase = "http://eol.org/api/search/1.0.json?q=%s&page=%i&"
     
     def __init__(self, indict={}):
-        self.config = {"exact": "true"}
+        """Initalize with config: return esact results and filter by nothing"""
+        self.config = {"exact": "true", "filter_by_taxon_concept_id": "false",
+                       "filter_by_hierarchy_entry_id": "false",
+                       "filter_by_string": "false"}
         dict.__init__(self, indict)
         
     @property
@@ -21,6 +29,10 @@ class EolName2IdMap(dict):
             return dict.__getitem__(self, name)
             
     def eolCall(self, name, page=1):
+        """Call the web service to get information on a name.
+        
+        Will call itself recursively if necessary to get the content of all 
+        available pages."""
         print self.urlTmpl % (name.replace(" ","+"), page)
         resp = urlopen(self.urlTmpl % (name.replace(" ","+"), page))
         respData = json.loads(resp.read())
@@ -33,6 +45,11 @@ class EolName2IdMap(dict):
         
         
 class EolInterface(object):
+    """Interface class to read information about an EOL page.
+    
+    Data is loaded once through EOL web service 'page' and can be queried for 
+    information with specialized functions or accessed directly.
+    """
     
     urlBase = "http://eol.org/api/pages/1.0/%i.json?"
     def __init__(self):
@@ -49,11 +66,13 @@ class EolInterface(object):
                                         for key, value in self.config.items()])
     
     def getData(self, eolId):
+        """Get data set of a certain EOL entry identified by its ID"""
         self.eolId = eolId
         print self.urlTmpl % self.eolId
         self.data = json.loads(urlopen(self.urlTmpl % self.eolId).read())
         
     def getTaxonId(self, source):
+        """From the loaded data get the taxonomy ID from a certain source"""
         if self.data is None:
             raise ValueError("No data loaded")
         for taxon in self.data["taxonConcepts"]:
