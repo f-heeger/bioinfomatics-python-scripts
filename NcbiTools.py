@@ -208,19 +208,25 @@ class NuclId2TaxIdMap(NcbiSoapMap):
         #if there is only one feature for some reason 
         # the feature list is not actually a list
         #here is a work around:
-        if type(resp["GBSet"][0]["GBSeq_feature-table"][0]) != type([]):
-            feature_list = [resp["GBSet"][0]["GBSeq_feature-table"][0]]
-        else:
-            feature_list = resp["GBSet"][0]["GBSeq_feature-table"][0]
-        for feature in feature_list:
-            if feature["GBFeature_key"] == "source":
-                for qual in feature["GBFeature_quals"][0]:
-                    if qual["GBQualifier_name"] == "db_xref":
-                        match = re.match("taxon:(\d+)", 
-                                         qual["GBQualifier_value"])
-                        if match:
-                            self[key] = match.group(1)
-                            return True
+        try:
+            if type(resp["GBSet"][0]["GBSeq_feature-table"][0]) != type([]):
+                feature_list = [resp["GBSet"][0]["GBSeq_feature-table"][0]]
+            else:
+                feature_list = resp["GBSet"][0]["GBSeq_feature-table"][0]
+            for feature in feature_list:
+                if feature["GBFeature_key"] == "source":
+                    for qual in feature["GBFeature_quals"][0]:
+                        if qual["GBQualifier_name"] == "db_xref":
+                            match = re.match("taxon:(\d+)", 
+                                             qual["GBQualifier_value"])
+                            if match:
+                                self[key] = match.group(1)
+                                return True
+        except Exception as e:
+            sys.stderr.write(str(resp))
+            raise KeyError("'%s' is not in the dictonary. "
+                           "Reading NCBI response caused an exception."
+                           "NCBI response was:\n%s" % (key, str(resp)))
         raise KeyError("'%s' is not in the dictonary. "
                        "NCBI response did not contain taxonomy inforamtion. "
                        "NCBI response was:\n%s" % (key, str(resp)[:100]))
