@@ -81,8 +81,8 @@ class NcbiSoapMap(dict):
     def save(self):
         if not self.useCache:
             raise CacheNotUsedError()
-        csv.writer(open(self.cachePath, "wb")).writerows(zip(self.keys(), 
-                                                             self.values()))
+        csv.writer(open(self.cachePath, "wb")).writerows(list(zip(self.keys(), 
+                                                             self.values())))
                                                              
     def __del__(self):
         if self.useCache:
@@ -309,18 +309,18 @@ if __name__ == "__main__":
                          }
                          
     
-    print "Running Ncbi Soap Tool tests"
+    print("Running Ncbi Soap Tool tests")
     
-    print "testing cache usage option"
+    print("testing cache usage option")
     baseMap = NcbiSoapMap(useCache=False)
     try:
         baseMap.save()
     except CacheNotUsedError:
-        print "Deactivation of cache is working as expected"
+        print("Deactivation of cache is working as expected")
     
-    print "testing scientific name to taxonomy ID map:"
+    print("testing scientific name to taxonomy ID map:")
     sciName2taxId = SpeciesName2TaxId()
-    print "Successfully build mapping object"
+    print("Successfully build mapping object")
     for key, value in sciNam2IdTestSet.items():
         sys.stdout.write("%s\t" % key)
         tId = str(sciName2taxId[key])
@@ -331,9 +331,9 @@ if __name__ == "__main__":
             sys.stdout.write("\tFailed. Unexpected value: %s\n" % tId)
         time.sleep(1)
     
-    print "testing nuclear ID to scientific name (taxonomy) map:"
+    print("testing nuclear ID to scientific name (taxonomy) map:")
     nuclId2taxName = NuclId2SpeciesNameMap()
-    print "Successfully build mapping object"
+    print("Successfully build mapping object")
     for key, value in nucl2taxNameTestSet.items():
         sys.stdout.write("%s\t" % key)
         tId = str(nuclId2taxName[key])
@@ -344,9 +344,9 @@ if __name__ == "__main__":
             sys.stdout.write("\tFailed. Unexpected value: %s\n" % tId)
         time.sleep(1)
     
-    print "testing nuclear ID to taxonomy ID map:"
+    print("testing nuclear ID to taxonomy ID map:")
     nuclId2taxId = NuclId2TaxIdMap()
-    print "Successfully build mapping object"
+    print("Successfully build mapping object")
     for key, value in nucl2taxIdTestSet.items():
         sys.stdout.write("%s\t" % key)
         try:
@@ -364,9 +364,9 @@ if __name__ == "__main__":
             sys.stdout.write("\tFailed. Unexpected value: %s\n" % tId)
         time.sleep(1)
     
-    print "testing lineage map"
+    print("testing lineage map")
     lineageMap = LineageMap()
-    print "Successfully build mapping object"
+    print("Successfully build mapping object")
     sys.stdout.write("polar bear <-> brown bear\t")
     brownBear = lineageMap[9644]
     polarBear = lineageMap[29073]
@@ -388,8 +388,8 @@ if __name__ == "__main__":
         sys.stdout.write("Failed. Lineages should be different\n")
     else:
         sys.stdout.write("OK\n")
-    print "testing Cached gi to tax id mapping"
+    print("testing Cached gi to tax id mapping")
     cGi2tax = CachedNuclId2TaxIdMap("/tmp/testDb.db")
-    print "Succsessfully build mapping object"
+    print("Succsessfully build mapping object")
     #TODO write test for functionality
-    print "done testing"
+    print("done testing")
