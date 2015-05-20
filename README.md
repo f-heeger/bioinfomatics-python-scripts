@@ -102,6 +102,26 @@ This script plots read properties according to their position on the flow cell.
 Default only one quality overview per file will be plotted as png file.
 Additional options allow to also plot N-count per read (`-n`), produce detail plots per tile (`-d`) and to produce additional pdf files (`-p`).
 
+### subtractReadsByMapping
+
+>Usage: subtractReadsByMapping.py [options] mappingfile read1.fastx out1.fastx read2.fastx >out2.fastx
+>
+>Options:
+>  -h, --help           show this help message and exit
+>  -q, --quite          do not print status messages to the screen
+>  -a, --fasta          input file(s) is/are fasta
+>  -m X, --mapped1=X    write mapped reads from read 1 to this files
+>  -n X, --mapped2=X    write mapped reads from read 2 to this files
+>  -z, --gzip           input file(s) is/are gzipped
+>  -y, --mapping-gzip   mapping file is gzipped
+>  -b, --blast          mapping file is tabular blast output instead of sam
+>                       file
+>  -t X, --threshold=X  consider reads with an e-value lower than X as
+>                       "mapped". (Can only be used in blast mode) [default:
+>                       0.000001]
+
+From a set of single end or paired end reads in a fasta or fastq file (or two for paired end) remove all reads that were mapped in a mapping result given as a sam file or a blast tabular file (`-b`). Reads files can be gziped (`-z`) as well as the mapping file (`-y`). For blast results a minimal e-value can be given for a match to be considered as a "mapping" (`-t`).
+
 ## Modules
 
 ### NcbiTools
@@ -140,7 +160,7 @@ Base class that implements the multi-layer cache.
 #### SqliteCache
 Cache class to use as a cache layer in a `MultiCachedDict`. It will use a sqlite3 database to implement a local, persistent mapping.
 #### SqliteListCache
-Same as `SqliteCache`, but can deal with values that are keys.
+Same as `SqliteCache`, but can deal with values that are lists.
 #### PersistantDict
 Simple cached dictionary. It uses only a `SqliteCache` (beside the normal RAM dictionary) to save mappings between program calls.
  
