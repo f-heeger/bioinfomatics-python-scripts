@@ -104,21 +104,21 @@ Additional options allow to also plot N-count per read (`-n`), produce detail pl
 
 ### subtractReadsByMapping
 
->Usage: subtractReadsByMapping.py [options] mappingfile read1.fastx out1.fastx read2.fastx >out2.fastx
->
->Options:
->  -h, --help           show this help message and exit
->  -q, --quite          do not print status messages to the screen
->  -a, --fasta          input file(s) is/are fasta
->  -m X, --mapped1=X    write mapped reads from read 1 to this files
->  -n X, --mapped2=X    write mapped reads from read 2 to this files
->  -z, --gzip           input file(s) is/are gzipped
->  -y, --mapping-gzip   mapping file is gzipped
->  -b, --blast          mapping file is tabular blast output instead of sam
->                       file
->  -t X, --threshold=X  consider reads with an e-value lower than X as
->                       "mapped". (Can only be used in blast mode) [default:
->                       0.000001]
+>Usage: subtractReadsByMapping.py [options] mappingfile read1.fastx out1.fastx read2.fastx >out2.fastx  
+>  
+>Options:  
+>  -h, --help           show this help message and exit  
+>  -q, --quite          do not print status messages to the screen  
+>  -a, --fasta          input file(s) is/are fasta  
+>  -m X, --mapped1=X    write mapped reads from read 1 to this files  
+>  -n X, --mapped2=X    write mapped reads from read 2 to this files  
+>  -z, --gzip           input file(s) is/are gzipped  
+>  -y, --mapping-gzip   mapping file is gzipped  
+>  -b, --blast          mapping file is tabular blast output instead of sam  
+>                       file  
+>  -t X, --threshold=X  consider reads with an e-value lower than X as  
+>                       "mapped". (Can only be used in blast mode) [default:  
+>                       0.000001]  
 
 From a set of single end or paired end reads in a fasta or fastq file (or two for paired end) remove all reads that were mapped in a mapping result given as a sam file or a blast tabular file (`-b`). Reads files can be gziped (`-z`) as well as the mapping file (`-y`). For blast results a minimal e-value can be given for a match to be considered as a "mapping" (`-t`).
 
@@ -181,4 +181,3 @@ Note: exact search is switched on by default.
 #### EolInterface
 Loads data for an EOL entry once with the `page` EOL web service.
 Data is kepped in memory and can be querried directly in the `data` member of this class or by specialized functions.
-
