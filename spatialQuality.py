@@ -11,7 +11,7 @@ except ImportError:
 try:
     from Bio.SeqIO import parse
 except ImportError:
-    sys.stderr.write("ERROR: Could not import biopython.")
+    sys.stderr.write("ERROR: Could not import biopython.\n")
     exit(1)
 try:
     from rpy2 import robjects
@@ -20,7 +20,7 @@ try:
 except ImportError:
     rpyImported = False
     sys.stderr.write("WARNING: Could not import rpy2. "
-                     "No plotting will be available.")
+                     "No plotting will be available.\n")
 
 class Log:
     def __init__(self, logStream=None):
@@ -193,7 +193,7 @@ if __name__ == "__main__":
             except AttributeError:
                 log.write("WARNING. Could not parse file name '%s'. "
                           "Falling back to position (%i) in command line for "
-                          "output naming." % (inFile, i))
+                          "output naming.\n" % (inFile, i))
                 name = str(i)
             main(inStream, options.outFolder, name, options.pdf, options.detail,
                  options.ncount, log)
