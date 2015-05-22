@@ -192,9 +192,9 @@ if __name__ == "__main__":
                 name = "%s_%s" % (m.group(1), m.group(2))
             except AttributeError:
                 log.write("WARNING. Could not parse file name '%s'. "
-                          "Falling back to position (%i) in command line for "
-                          "output naming.\n" % (inFile, i))
-                name = str(i)
+                          "Using whole file name for output naming.\n" 
+                          % (inFile))
+                name = os.path.basename(inFile) + "_spatialQual"
             main(inStream, options.outFolder, name, options.pdf, options.detail,
                  options.ncount, log)
             inStream.close()
