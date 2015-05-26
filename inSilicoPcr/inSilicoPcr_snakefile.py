@@ -99,14 +99,21 @@ rule generateLengthPlot:
         library(scales)
         library(gridExtra)
 
-        data = read.table("%s", header=F)
+        data = read.table("%(infile)s", header=F)
         colnames(data) = c("seqId", "len")
 
         plotList = list()
-        plotList[[1]] = ggplot(data, aes(x=len)) + geom_histogram(binwidth=1, color="black")
-        plotList[[2]] = ggplot(data, aes(x=len)) + geom_density()
-        ggsave("%s", do.call(marrangeGrob, c(plotList, list(nrow=1, ncol=1))))
-        """ % (input[0], output[0]))
+        plotList[[1]] = ggplot(data, aes(x=len)) + geom_histogram(binwidth=1, color="black") + ggtitle(expression(atop("Length distribution of predicted amplicons", atop("with primer pair: %(primers)s on database: %(db)s", atop("min. Temp.: %(minT).2f, max. Temp.: %(maxT).2f, max. Len.: %(len)i"))))) + xlab("length")
+        plotList[[2]] = ggplot(data, aes(x=len)) + geom_density() + ggtitle(expression(atop("Length distribution of predicted amplicons", atop("with primer pair: %(primers)s on database: %(db)s", atop("min. Temp.: %(minT).2f, max. Temp.: %(maxT).2f, max. Len.: %(len)i"))))) + xlab("length")
+        ggsave("%(outfile)s", do.call(marrangeGrob, c(plotList, list(nrow=1, ncol=1, top=NULL))))
+        """ % {"infile": input[0], "outfile": output[0], 
+               "primers": wildcards.pair_name, 
+               "db": wildcards.dbname, 
+               "len": config["primer_pairs"][wildcards.pair_name]["max_len"], 
+               "maxT":config["primer_pairs"][wildcards.pair_name]["max_temp"],
+               "minT": config["primer_pairs"][wildcards.pair_name]["min_temp"],
+               }
+         )
         
 rule getTaxonomyInfo:
     input: "{pair_name}/{pair_name}_vs_{dbname}.out"
