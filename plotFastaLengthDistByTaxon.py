@@ -21,26 +21,28 @@ def getData(stream, inFormat, ranks, log=None):
     for rank in ranks:
         spec2rank[rank] = SingleLevelLineageMap(rank, cachePath="spec2%s.csv" % rank, retry=1)
         mapping[rank] = []
-    for rec in parse(stream, inFormat):
-        gi = rec.id.split("|", 2)[1]
-        try:
-            spec = gi2spec[gi]
-        except KeyError:
-            for rank in ranks:
-                mapping[rank].append((rec.id, len(rec), "NA"))
-        else:
-            for rank in ranks:
-                d = spec2rank[rank][spec]
-                if len(d) > 1:
-                    raise ValueError("More than one taxonomy group of "
-                                     "rank '%s' for gi '%s'" % (rank, gi))
-                if len(d) == 0:
-                    tax = "NA"
-                else:
-                    tax = d[0][2]
-                mapping[rank].append((rec.id, len(rec), tax))
-    for lineageMap in spec2rank.values():
-        lineageMap.save()
+    try:
+        for rec in parse(stream, inFormat):
+            gi = rec.id.split("|", 2)[1]
+            try:
+                spec = gi2spec[gi]
+            except KeyError:
+                for rank in ranks:
+                    mapping[rank].append((rec.id, len(rec), "NA"))
+            else:
+                for rank in ranks:
+                    d = spec2rank[rank][spec]
+                    if len(d) > 1:
+                        raise ValueError("More than one taxonomy group of "
+                                         "rank '%s' for gi '%s'" % (rank, gi))
+                    if len(d) == 0:
+                        tax = "NA"
+                    else:
+                        tax = d[0][2]
+                    mapping[rank].append((rec.id, len(rec), tax))
+    finally:
+        for lineageMap in spec2rank.values():
+            lineageMap.save()
     return mapping
 
 
@@ -55,7 +57,7 @@ data = read.table(file("stdin"), header=F)
 colnames(data) = c("seqId", "len", "taxon")
 
 pdf("%(out)s")
-ggplot(data, aes(x=len, color=taxon, fill=taxon))%(mark)s + geom_histogram(binwidth=10)%(log)s
+ggplot(data, aes(x=len, fill=taxon))%(mark)s + geom_histogram(binwidth=10)%(log)s
 ggplot(data, aes(x=len, color=taxon))%(mark)s + geom_density(aes(len, ..count..), alpha=.5)
 dev.off()
 """
@@ -87,8 +89,20 @@ dev.off()
 if __name__ == "__main__":
 
     usage = "usage: %prog [options] input.fasta"
+    des = "Plot the length distribution of fasta records grouped and colored" \
+          " by taxonomic rank according to NCBI Taxonomy database. Fasta" \
+          " records must have NCBi headers (IDs sepearted by '|' and contain" \
+          " gi numbbers). Not all species will have all ranks. sequences from" \
+          " species which don't have the defined rank will show up in gray in" \
+          " the plot."
+    epi = "Common ranks that are accepted by NCBi are: kingdom," \
+          " phylum, class, order, family, genus and species. In addition NCBI" \
+          " also has: subclass, subphylum, subgenus, species_group," \
+          " species_subgroup, infraorder, suborder, superclass, varietas," \
+          " superfamily, infraclass, parvorder, superkingdom, subspecies," \
+          " subfamily, tribe, forma, superphylum, subtribe, subkingdom."
 
-    parser = OptionParser(usage)
+    parser = OptionParser(usage, description=des, epilog=epi)
     
     parser.add_option("-u", "--fastq",
                        action="store_true", dest="fastq",
@@ -114,7 +128,9 @@ if __name__ == "__main__":
     parser.add_option("-r", "--rank",
                       action="append", type="string", dest="ranks",
                       default=None, 
-                      help="color length plots by this taxonomic level [default: kingdom]",
+                      help="color length plots by this taxonomic level, "
+                           "see below for a list of accepted ranks "
+                           "[default: kingdom]",
                       metavar="RANK")
 
     (options, args) = parser.parse_args()
@@ -135,12 +151,23 @@ if __name__ == "__main__":
     else:
         inStream = open(args[0], "r")
     
-    if len(options.ranks) == 0:
+    known_ranks = ["kingdom","phylum", "class", "order", "family", "genus",
+                   "species","subclass", "subphylum", "subgenus", 
+                   "species_group", "species_subgroup", "infraorder", 
+                   "suborder", "superclass", "varietas", "superfamily", 
+                   "infraclass", "parvorder", "superkingdom", "subspecies",
+                   "subfamily", "tribe", "forma", "superphylum", "subtribe", 
+                   "subkingdom"]
+    
+    if options.ranks is None or len(options.ranks) == 0:
         if not log is None:
             log.write("No rank given defaulting to 'kingdom'\n")
         ranks = ["kingdom"]
     else:
         ranks = options.ranks
+        for r in ranks:
+            if r not in known_ranks:
+                parser.error("Unknown rank: '%s'" % r)
     if not log is None:
         log.write("Reading data...\n")
     mapping = getData(inStream, fileType, ranks, sys.stderr)
