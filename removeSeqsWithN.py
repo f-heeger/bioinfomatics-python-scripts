@@ -106,7 +106,7 @@ if __name__ == "__main__":
     
     fileFormat = "fastq"
     if options.fasta:
-        fielFormat = "fasta"
+        fileFormat = "fasta"
     sys.stderr.write("Reading and writing in %s format\n" % fileFormat)
     #running actual function
     sys.stderr.write("Start filtering...\n")
