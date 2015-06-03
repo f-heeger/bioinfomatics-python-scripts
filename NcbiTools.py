@@ -81,9 +81,10 @@ class NcbiSoapMap(dict):
     def save(self):
         if not self.useCache:
             raise CacheNotUsedError()
-        csv.writer(open(self.cachePath, "wb")).writerows(list(zip(self.keys(), 
-                                                             self.values())))
-                                                             
+        with open(self.cachePath, "wb") as out:
+            for key, value in self.items():
+                out.write("%s,%s\n" % (str(key), str(value)))
+
     def __del__(self):
         if self.useCache:
             self.save()
@@ -156,7 +157,9 @@ class LineageMap(NcbiSoapMap):
         for tax, m in self.items():
             for rank, lTax, lName in m:
                 tab.append([tax, rank, lTax, lName])
-        csv.writer(open(self.cachePath, "wb")).writerows(tab)
+        with open(self.cachePath, "wb") as out:
+            for row in tab:
+                out.write(",".join([str(field) for field in row])+"\n")
     
     def load(self):
         if not self.useCache:
@@ -185,6 +188,18 @@ class SingleLevelLineageMap(LineageMap):
             if r["Rank"] == self.level:
                 m.append((r["Rank"], r["TaxId"], r["ScientificName"]))
         self[key] = m
+
+class TaxonomyParentMap(NcbiSoapMap):
+    """Map NCBI taxonomy IDs to the ID of its parent node in NCBI taxonomy.
+    """
+    wsdlUrl = "http://www.ncbi.nlm.nih.gov/soap/v2.0/efetch_taxon.wsdl"
+    
+    def requestFunction(self, key):
+        cl = SoapClient(self.wsdlUrl)
+        return cl.service.run_eFetch(str(key))
+    
+    def readResponse(self, resp, key):
+        self[key] = resp.TaxaSet[0][0]["ParentTaxId"]
 
 class NuclId2TaxIdMap(NcbiSoapMap):
     """Map NCBI nucleotide GIs to the taxonomy ID of the species they come from.
@@ -308,6 +323,32 @@ if __name__ == "__main__":
                          666359714: "29073",
                          }
                          
+    taxParentTestSet = {666681: "1055487",
+                        4890: "451864",
+                        63221: "9606",
+                        9606: "9605",
+                        153057: "327045",
+                        } 
+                        
+                         
+    
+    def test(mapObj, data):
+        for key, value in data.items():
+            sys.stdout.write("%s\t" % key)
+            try:
+                returned = str(mapObj[key])
+            except Exception as e:
+                import traceback
+                sys.stderr.write(traceback.format_exc())
+                sys.stdout.write("\tFailed. Exception raised: \"%s\". "
+                                 "See log file for more information\n" % str(e))
+                continue
+            sys.stdout.write(returned)
+            if returned == value:
+                sys.stdout.write("\t\033[92mOK\033[0m\n")
+            else:
+                sys.stdout.write("\t\033[91mFailed. Unexpected value: %s\033[0m\n" % tId)
+            time.sleep(1)
     
     print("Running Ncbi Soap Tool tests")
     
@@ -321,48 +362,18 @@ if __name__ == "__main__":
     print("testing scientific name to taxonomy ID map:")
     sciName2taxId = SpeciesName2TaxId()
     print("Successfully build mapping object")
-    for key, value in sciNam2IdTestSet.items():
-        sys.stdout.write("%s\t" % key)
-        tId = str(sciName2taxId[key])
-        sys.stdout.write(tId)
-        if tId == value:
-            sys.stdout.write("\tOK\n")
-        else:
-            sys.stdout.write("\tFailed. Unexpected value: %s\n" % tId)
-        time.sleep(1)
+    test(sciName2taxId, sciNam2IdTestSet)
+
     
     print("testing nuclear ID to scientific name (taxonomy) map:")
     nuclId2taxName = NuclId2SpeciesNameMap()
     print("Successfully build mapping object")
-    for key, value in nucl2taxNameTestSet.items():
-        sys.stdout.write("%s\t" % key)
-        tId = str(nuclId2taxName[key])
-        sys.stdout.write(tId)
-        if tId == value:
-            sys.stdout.write("\tOK\n")
-        else:
-            sys.stdout.write("\tFailed. Unexpected value: %s\n" % tId)
-        time.sleep(1)
+    test(nuclId2taxName, nucl2taxNameTestSet)
     
     print("testing nuclear ID to taxonomy ID map:")
     nuclId2taxId = NuclId2TaxIdMap()
     print("Successfully build mapping object")
-    for key, value in nucl2taxIdTestSet.items():
-        sys.stdout.write("%s\t" % key)
-        try:
-            tId = str(nuclId2taxId[key])
-        except Exception as e:
-            import traceback
-            sys.stderr.write(traceback.format_exc())
-            sys.stdout.write("\tFailed. Exception raised: \"%s\". "
-                             "See log file for more information\n" % str(e))
-            continue
-        sys.stdout.write(tId)
-        if tId == value:
-            sys.stdout.write("\tOK\n")
-        else:
-            sys.stdout.write("\tFailed. Unexpected value: %s\n" % tId)
-        time.sleep(1)
+    test(nuclId2taxId, nucl2taxIdTestSet)
     
     print("testing lineage map")
     lineageMap = LineageMap()
@@ -392,4 +403,15 @@ if __name__ == "__main__":
     cGi2tax = CachedNuclId2TaxIdMap("/tmp/testDb.db")
     print("Succsessfully build mapping object")
     #TODO write test for functionality
+    print("testing taxonomy parent map")
+    taxParent = TaxonomyParentMap()
+    print("Succsessfully build mapping object")
+    test(taxParent, taxParentTestSet)
+    print("testing save/load functions")
+    sciName2taxId.cachePath = "/tmp/testSave.csv"
+    sciName2taxId.save()
+    print("saved successful")
+    sciName2taxId = SpeciesName2TaxId(cachePath="/tmp/testSave.csv")
+    test(sciName2taxId, sciNam2IdTestSet)
+    print("loaded successful")
     print("done testing")

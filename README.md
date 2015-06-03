@@ -135,6 +135,8 @@ Map a scientific species name to a NCBI taxonomy ID
 Map a NCBI taxonomy ID to the complete taxonomic lineage defined by the NCBI taxonomy tree. Return value will be a list of 3-tuples representing NCBI taxonomy nodes. The tuples will contain: rank, taxonomy ID, scientific name
 #### SingleLevelLineageMap
 Map a NCBI taxonomy ID to specific taxonomic level from the NCBI taxonomy tree. Return value will be a list of 3-tuples representing NCBI taxonomy nodes. The tuples will contain: rank, taxonomy ID, scientific name
+#### TaxonomyParentMap
+Map a NCBI taxonomy ID to its parent nodes (in the NCBI taxonomy tree) NCBI taxonomy ID.
 #### NuclId2TaxIdMap
 Map the GI number of a NCBI nucleotide record to the according NCBI taxonomy ID 
 #### NuclId2SpeciesNameMap
