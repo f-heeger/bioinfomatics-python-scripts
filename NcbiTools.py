@@ -279,6 +279,73 @@ class CachedNuclId2TaxIdMap(MultiCachedDict):
         database = SqliteCache(filePath=dbPath, indict=None, table="gi2tax", 
                                key="gi", value="tax")
         MultiCachedDict.__init__(self, None, [database, ncbi])
+        
+class CachedTaxonomyParentMap(MultiCachedDict):
+    def __init__(self, dbPath):
+        ncbi = TaxonomyParentMap(useCache=False)
+        database = SqliteCache(filePath=dbPath, indict=None, table="tax2parent", 
+                               key="tax", value="parent")
+        MultiCachedDict.__init__(self, None, [database, ncbi])
+
+class NcbiTaxonomyTree(object):
+    """Representation of the NCBI taxonoy tree.
+    
+    Can be querried for information on the tree with a taxonomy ID."""
+    def __init__(self, cachePath=None):
+        """Constructor for NCBI taxonomy tree class.
+        
+        If cache path is gicen and not None the database at that path will be 
+        used as persistent cache.
+        """
+        if cachePath is None:
+            self._parent = TaxonomyParentMap(useCache=False)
+            self.cached = False
+        else:
+            self._parent = CachedTaxonomyParentMap(cachePath)
+            self.cached = True
+        
+    def initialize(self, dmpPath):
+        """Initialize the tree object with data from a NCBI taxonomy dump file.
+        
+        This only works if the cache is enabled.
+        """
+        if not self.cached:
+            raise NotImplementedError("This tree is not using a cache. "
+                                      "It can not be initialized.")
+        with open(dmpPath) as dmp:
+            for line in dmp:
+                tax, parent, _ = line.split("\t|\t", 2)
+                self._parent[tax] = parent
+    
+    def parent(self, taxId):
+        """
+        Return NCBI taxonomy ID of the parent node of the node given by the 
+        NCBI taxonomy ID."""
+        return self._parent[taxId]
+        
+    def lineage(self, taxId):
+        """
+        Return the list of NCBI taxonomy IDs of the ancestors (in the tree 
+        sense) of the node given by the NCBI taxonomy ID. the list includes the 
+        root node (1) as the first element."""
+        t = taxId
+        lineage = [str(t)]
+        while int(t) != 1: # 1 == root
+            t = str(self._parent[t])
+            lineage.append(t)
+        return lineage[::-1]
+    
+    def lca(self, taxId1, taxId2):
+        """
+        Return the NCBI taxonomy ID of the lowest common ancestor in the NCBI
+        taxonomy tree of the two given taxonomy IDs. Note that there is 
+        always at least on common ancestor (the root node)."""
+        l1 = self.lineage(taxId1)
+        l2 = self.lineage(taxId2)
+        i = 0
+        while i < len(l1) and i < len(l2) and l1[i] == l2[i]:
+            i+=1
+        return l1[i-1]
 
 if __name__ == "__main__":
     import logging

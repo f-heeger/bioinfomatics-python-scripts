@@ -136,13 +136,16 @@ Map a NCBI taxonomy ID to the complete taxonomic lineage defined by the NCBI tax
 #### SingleLevelLineageMap
 Map a NCBI taxonomy ID to specific taxonomic level from the NCBI taxonomy tree. Return value will be a list of 3-tuples representing NCBI taxonomy nodes. The tuples will contain: rank, taxonomy ID, scientific name
 #### TaxonomyParentMap
-Map a NCBI taxonomy ID to its parent nodes (in the NCBI taxonomy tree) NCBI taxonomy ID.
+Map a NCBI taxonomy ID to its parent node (in the NCBI taxonomy tree) NCBI taxonomy ID.
 #### NuclId2TaxIdMap
 Map the GI number of a NCBI nucleotide record to the according NCBI taxonomy ID 
 #### NuclId2SpeciesNameMap
 Map the GI number of a NCBI nucleotide record to scientific name of the according species
 #### CachedNuclId2TaxIdMap
 Map the GI number of a NCBI nucleotide record to the according NCBI taxonomy ID. Use a sqlite3 database as persistent cache to reduce requests to NCBI 
+#### NcbiTaxonomyTree
+A class representing the tree given by the NCBI taxonomy database. If a cache path is given to the constructor a database at this path will be used as persistent cache. The object can be initialized by the function with the same name. It takes a node.dmp file of the NCBI taxonomy file dump as input. This option is only available if a cache is used (otherwise there is no place to store the initialized data). Missing data will be loaded directly from the NCBI data base via SOAP request, but only once it is needed.  
+The object can be queried for information on the tree with NCBI taxonomy IDs representing a node. The function include: parent of a node, full path to the root and lowest common ancestor of two nodes.
 
 ### UniprotTools
 Collection of tools to query [Uniprot](http://www.uniprot.org/)
