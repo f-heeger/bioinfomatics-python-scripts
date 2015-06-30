@@ -199,7 +199,10 @@ class TaxonomyParentMap(NcbiSoapMap):
         return cl.service.run_eFetch(str(key))
     
     def readResponse(self, resp, key):
-        self[key] = resp.TaxaSet[0][0]["ParentTaxId"]
+        try:
+            self[key] = resp.TaxaSet[0][0]["ParentTaxId"]
+        except TypeError:
+            self[key] = -1
 
 class NuclId2TaxIdMap(NcbiSoapMap):
     """Map NCBI nucleotide GIs to the taxonomy ID of the species they come from.
@@ -294,7 +297,7 @@ class NcbiTaxonomyTree(object):
     def __init__(self, cachePath=None):
         """Constructor for NCBI taxonomy tree class.
         
-        If cache path is gicen and not None the database at that path will be 
+        If cache path is given and not None the database at that path will be 
         used as persistent cache.
         """
         if cachePath is None:
@@ -335,17 +338,17 @@ class NcbiTaxonomyTree(object):
             lineage.append(t)
         return lineage[::-1]
     
-    def lca(self, taxId1, taxId2):
+    def lca(self, taxList):
         """
         Return the NCBI taxonomy ID of the lowest common ancestor in the NCBI
-        taxonomy tree of the two given taxonomy IDs. Note that there is 
+        taxonomy tree of a list of given taxonomy IDs. Note that there is 
         always at least on common ancestor (the root node)."""
-        l1 = self.lineage(taxId1)
-        l2 = self.lineage(taxId2)
-        i = 0
-        while i < len(l1) and i < len(l2) and l1[i] == l2[i]:
-            i+=1
-        return l1[i-1]
+        lin = [self.lineage(tax) for tax in set(taxList)]
+        lvl = 0
+        while all([lvl < len(l) for l in lin]) \
+              and all([lin[0][lvl] == lin[i][lvl] for i in range(1, len(lin))]):
+            lvl+=1
+        return lin[0][lvl-1]
 
 if __name__ == "__main__":
     import logging
