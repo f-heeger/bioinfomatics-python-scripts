@@ -10,7 +10,7 @@ class EolName2IdMap(dict):
     urlBase = "http://eol.org/api/search/1.0.json?q=%s&page=%i&"
     
     def __init__(self, indict={}):
-        """Initalize with config: return esact results and filter by nothing"""
+        """Initalize with config: return exact results and filter by nothing"""
         self.config = {"exact": "true", "filter_by_taxon_concept_id": "false",
                        "filter_by_hierarchy_entry_id": "false",
                        "filter_by_string": "false"}
