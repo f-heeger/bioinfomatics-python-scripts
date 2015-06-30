@@ -3,6 +3,8 @@ import subprocess
 import sys
 
 from snakemake.utils import R
+from Bio import SeqIO
+from Bio.Seq import Seq
 
 from NcbiTools import CachedNuclId2TaxIdMap
 from TntBlastParser import tntBlastParser
@@ -32,7 +34,7 @@ databases = list(config["databases"].keys())
 #print(config)
 
 rule all:
-    input: expand(["{pair_name}/{pair_name}_vs_{dbname}_lengthDist.pdf", "{pair_name}/{pair_name}_vs_{dbname}.krona.html"], pair_name=primer_pairs, dbname=databases)
+    input: expand(["{pair_name}/{pair_name}_vs_{dbname}_lengthDist.pdf", "{pair_name}/{pair_name}_vs_{dbname}.krona.html", "{pair_name}/{pair_name}_vs_{dbname}.sim_R1.fq.gz"], pair_name=primer_pairs, dbname=databases)
 
 rule creatPrimerFile:
     output: "{pair_name}/{pair_name}.txt"
@@ -132,4 +134,26 @@ rule makeKronaPlots:
     output: "{pair_name}/{pair_name}_vs_{dbname}.krona.html"
     shell:
         "%(krona)s -o {output} {input}" % config
-        
+
+rule removeShortFragments:
+    input: "{pair_name}/{pair_name}_vs_{dbname}_amplicon.fasta"
+    output: "{pair_name}/{pair_name}_vs_{dbname}_longAmplicon.fasta"
+    run:
+        dropped = 0
+        with open(output[0], "w") as out:
+            for record in SeqIO.parse(open(input[0], "r"), "fasta"):
+                if len(record) > config["read_length"]:
+                    s = Seq(str(record.seq).replace("-","N"))
+                    record.seq = s
+                    out.write(record.format("fasta"))
+                else:
+                    dropped += 1
+        print("Dropped %i short fragments" % dropped)
+
+rule simulateReads:
+    input: "{pair_name}/{pair_name}_vs_{dbname}_longAmplicon.fasta"
+    output: read1="{pair_name}/{pair_name}_vs_{dbname}.sim_R1.fq.gz", read2="{pair_name}/{pair_name}_vs_{dbname}.sim_R2.fq.gz"
+    log: "{pair_name}/{pair_name}_vs_{dbname}_mason_log.txt"
+    shell:
+        "%s" % config["mason"] + " --embed-read-info --illumina-read-length %(read_length)i -i {input} -o {output.read1} -or {output.read2} &> {log}" % config
+    

@@ -1,6 +1,7 @@
 {
     "tntblast" : "/home/heeger/bin/tntblast/bin/tntblast",
     "krona" : "/home/heeger/bin/KronaTools-2.4/scripts/ImportTaxonomy.pl",
+    "mason" : "/home/heeger/bin/seqan-release/bin/mason_frag_sequencing",
     "gi2tax_db" : "/home/heeger/data/dbs/gi_taxid_nucl.db",
     "databases" : {
         "ncbi_nt" : "/home/heeger/data/ncbi_nt_fasta/nt_4000",
@@ -14,13 +15,6 @@
             "max_temp" : 53,
             "max_len"  : 1000
         },
-        "jgi_18sv4" : {
-            "forward_seq" : "CCAGCASCYGCGGTAATTCC",
-            "reverse_seq" : "ACTTTCGTTCTTGATYRA",
-            "min_temp" : 47,
-            "max_temp" : 53,
-            "max_len"  : 1000
-        },
         "jgi_ITS9_ITS4" : {
             "forward_seq" : "GAACGCAGCRAAIIGYGA",
             "reverse_seq" : "TCCTCCGCTTATTGATATGC",
@@ -29,11 +23,11 @@
             "max_len"  : 1000
         },
         "LF340_LR5fung" : {
-        "forward_seq" : "TACTTGTKCGCTATCGG",
-        "reverse_seq" : "CGATCGATTTGCACGTCAGA",
-        "min_temp" : 50,
-        "max_temp" : 55,
-        "max_len"  : 1000
+            "forward_seq" : "TACTTGTKCGCTATCGG",
+            "reverse_seq" : "CGATCGATTTGCACGTCAGA",
+            "min_temp" : 50,
+            "max_temp" : 55,
+            "max_len"  : 1000
         }
     }
 }
