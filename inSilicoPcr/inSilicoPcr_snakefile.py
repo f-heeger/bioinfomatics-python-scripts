@@ -64,23 +64,9 @@ rule extractAmplicons:
     input: "{pair_name}/{pair_name}_vs_{dbname}.out"
     output: "{pair_name}/{pair_name}_vs_{dbname}_amplicon.fasta"
     run:
-        with open(input[0], "r") as inFile, open(output[0], "w") as outFile:
-            while True:
-                try:
-                    line = inFile.readline()
-                    if not line:
-                        break #end of file reached
-                    if line[0] == ">":
-                        outFile.write(line)
-                        seqLine = inFile.readline()
-                        if len(seqLine.strip()) == 0:
-                            raise ValueError("TntBlast output file contains "
-                                             "incomplete sequence data. No sequence"
-                                             " found after header line: %s" % line)
-                        outFile.write(seqLine)
-                except StopIteration:
-                    break
-
+        with open(output[0], "w") as outFile:
+            for tntMatch in tntBlastParser(open(input[0]))
+                outFile.write("gi|%s_%s-%s" % tntMatch)
 
 rule getLengthStats:
     input: "{pair_name}/{pair_name}_vs_{dbname}_amplicon.fasta"
