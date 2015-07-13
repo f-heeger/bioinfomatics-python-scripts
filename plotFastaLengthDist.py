@@ -18,24 +18,28 @@ def getStats(stream, inFormat, log=None):
     return stats
 
 
-def plotLengthDist(stat, outFile, marks=None, logY=False):
+def plotLengthDist(stat, outFile, marks=None, logY=False, imgFormat="pdf"):
     """Generates a temporary R script and calls R, pipes in the data generate 
     plots this way"""
-    # template for R script with solots for outfile, marks and logarithmic y axis
+    # template for R script
     r_tmpl = """library(ggplot2)
 library(scales)
+library(gridExtra)
 
 data = read.table(file("stdin"), header=F)
 colnames(data) = c("seqId", "len")
 
-pdf("%(out)s")
-ggplot(data, aes(x=len))%(mark)s + geom_histogram(binwidth=1, color="black")%(log)s
-ggplot(data, aes(x=len))%(mark)s + geom_density()
+p1 = ggplot(data, aes(x=len))%(mark)s + geom_histogram(binwidth=1, color="black")%(log)s
+p2 = ggplot(data, aes(x=len))%(mark)s + geom_density()
+
+%(img_form)s("%(out)s")
+p = arrangeGrob(p1, p2, nrow=2)
+print(p)
 dev.off()
 """
 
     #buil dictonary with additional R code for plotting options
-    opt = {"out": outFile}
+    opt = {"out": outFile, "img_form": imgFormat}
     opt["mark"] = ""
     if not marks is None:
         for i, m in enumerate(marks):
@@ -82,6 +86,11 @@ if __name__ == "__main__":
     parser.add_option("-l", "--log-yaxis",
                       action="store_true", dest="ylog",
                       default=False, help="create plot with logarithmic y-axis",)
+    parser.add_option("-f", "--img-format",
+                      action="store", type="choice", dest="imgForm",
+                      default="pdf", help="set plot format to FORMAT [default: pdf]",
+                      choices=["pdf","png","jpeg", "bmp", "postscript"],
+                      metavar="FORMAT")
 
     (options, args) = parser.parse_args()
     
@@ -95,10 +104,17 @@ if __name__ == "__main__":
         inStream = open(args[0], "r")
     
     stats = getStats(inStream, fileType, sys.stderr)
-    pdfPath = os.path.join(options.outFolder, "%s_lengthDist.pdf" \
-                           % args[0].rsplit(".fast", 1)[0].rsplit("/", 1)[-1])
+    
+    extension = {'pdf': "pdf", 'png': "png", 'jpeg': "jpg", 'bmp': "bmp", 
+                 'postscript': "ps"}
+    
+    pdfPath = os.path.join(options.outFolder, "%s_lengthDist.%s" \
+                           % (args[0].rsplit(".fast", 1)[0].rsplit("/", 1)[-1],
+                              extension[options.imgForm])
+                           )
     try:
-        plotLengthDist(stats, pdfPath, options.marks, options.ylog)
+        plotLengthDist(stats, pdfPath, options.marks, options.ylog, 
+                       options.imgForm)
     except OSError as e:
         if e.errno == os.errno.ENOENT:
             sys.stderr.write("Problem starting R to do the plotting\n")
