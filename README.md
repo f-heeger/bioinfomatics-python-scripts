@@ -59,11 +59,15 @@ Input data can be provided as a file (first argument) or be piped in.
 >  -m X, --mark-value=X  mark position X on the x-Axis  
 >  -t, --text-output     also write text output  
 >  -l, --log-yaxis       create plot with logarithmic y-axis  
+>  -f FORMAT, --img-format=FORMAT
+>                        set plot format to FORMAT [default: pdf]  
+
 
 Plot the length distribution of the sequences in the input file. 
 Two plots in one pdf file will be drawn.
 A bar plot of the length counts (NOT a histogram, there will be no binning) and a smoothed density plot.
 With the `-t` option the collected data (sequence ID and sequence length) will also be written to a text file.
+Specify the image format with `-f`. Possible formats are: 'pdf', 'png', 'jpeg', 'bmp', 'postscript'.
 This scripts needs R to do the plotting.
 It will write a temporary R script and pipe the data into a R process executing this script.
 
