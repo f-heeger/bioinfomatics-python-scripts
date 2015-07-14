@@ -49,11 +49,11 @@ def subtractReads(readStream, format, mapped, outStream, outFormat="fastq",
 def subtractReadsBySamFile(samPath, readPath1, outPath1, readPath2=None, 
                            outPaht2=None, inForm="fastq", outForm="fastq", 
                            mappedPath1=None, mappedPath2=None, gziped=False, 
-                           log=None):
+                           mgziped=False, log=None):
     """Convenience function to call sbtractReadsByFile with a sam file"""
     subrtractReadsByFile(samPath, readSamFile, readPath1, outPath1, readPath2, 
                          outPaht2, inForm, outForm, mappedPath1, mappedPath2, 
-                         gziped, m_gziped, log)
+                         gziped, mgziped, log)
 
 def subtractReadsByBlastFile(blastPath, readPath1, outPath1, readPath2=None,
                              outPaht2=None, inForm="fastq", outForm="fastq", 
@@ -63,12 +63,12 @@ def subtractReadsByBlastFile(blastPath, readPath1, outPath1, readPath2=None,
     """
     subrtractReadsByFile(blastPath, readTabularBlastOutput, readPath1, outPath1,
                          readPath2, outPaht2, inForm, outForm, mappedPath1, 
-                         mappedPath2, mgziped, gziped, log, threshold)
+                         mappedPath2, gziped, mgziped, log, threshold)
 
 def subrtractReadsByFile(filePath, readFunc, readPath1, outPath1, 
                          readPath2=None, outPath2=None, inForm="fastq", 
                          outForm="fastq", mappedPath1=None, mappedPath2=None, 
-                         mgziped=False, gziped=False, log=None, threshold=None):
+                         gziped=False, mgziped=False, log=None, threshold=None):
     """Function to subtract reads that were "mapped" from a fasta/fastq file
     
     A "mapping" file is read with a function that has to be supplied. Either one
