@@ -65,8 +65,8 @@ rule extractAmplicons:
     output: "{pair_name}/{pair_name}_vs_{dbname}_amplicon.fasta"
     run:
         with open(output[0], "w") as outFile:
-            for tntMatch in tntBlastParser(open(input[0]))
-                outFile.write("gi|%s_%s-%s" % tntMatch)
+            for tntMatch in tntBlastParser(open(input[0])):
+                outFile.write(">gi|%s_%s-%s\n%s\n" % tntMatch)
 
 rule getLengthStats:
     input: "{pair_name}/{pair_name}_vs_{dbname}_amplicon.fasta"
