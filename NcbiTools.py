@@ -132,6 +132,44 @@ class SpeciesName2TaxId(NcbiSoapMap):
             raise ValueError("Problem with key: %s. It got multiple answers.")
         self[key] = resp.IdList[0][0]
 
+class TaxonomyNodeName2TaxId(NcbiSoapMap):
+    """Map names of NCBI taxonomy DB nodes to a list of IDs of nodes with this 
+    name.
+    
+    One name can be mapped to several nodes (IDs), so the return value is always
+    a list.
+    """
+    wsdlUrl="http://www.ncbi.nlm.nih.gov/soap/v2.0/eutils.wsdl"
+    
+    def requestFunction(self, key):
+        cl = SoapClient(self.wsdlUrl)
+        return cl.service.run_eSearch("taxonomy", key)
+        
+    def readResponse(self, resp, key):
+        if int(resp.Count) == 0:
+            raise KeyError()
+        self[key] = resp.IdList[0]
+        
+    def save(self):
+        if not self.useCache:
+            raise CacheNotUsedError()
+        tab = []
+        for name, taxList in self.items():
+            for tax in taxList:
+                tab.append([name, tax])
+        with open(self.cachePath, "wb") as out:
+            for row in tab:
+                out.write(",".join([str(field) for field in row])+"\n")
+    
+    def load(self):
+        if not self.useCache:
+            raise CacheNotUsedError()
+        for row in csv.reader(open(self.cachePath, "rb")):
+            name, tax = row
+            if tax not in self:
+                self[tax] = []
+            self[tax].append(name)
+
 class LineageMap(NcbiSoapMap):
     """Map NCBI taxonomy IDs to full lineage information from NCBI taxonomy.
     
@@ -400,25 +438,38 @@ if __name__ == "__main__":
                         153057: "327045",
                         } 
                         
-                         
+    taxNodeNametoIdTestSet = {"Clavariopsis aquatica": ["253306"],
+                              "leotiomyceta": ["716546"],
+                              "Escherichia coli": ["562"],
+                              "Bacteria": ["2", "629395"],
+                              "cellular organisms": ["131567"]
+                             }
     
-    def test(mapObj, data):
+    def test(mapObj, data, cmpFunc=cmp):
         for key, value in data.items():
             sys.stdout.write("%s\t" % key)
             try:
-                returned = str(mapObj[key])
+                returned = mapObj[key]
             except Exception as e:
                 import traceback
                 sys.stderr.write(traceback.format_exc())
                 sys.stdout.write("\tFailed. Exception raised: \"%s\". "
                                  "See log file for more information\n" % str(e))
                 continue
-            sys.stdout.write(returned)
-            if returned == value:
+            sys.stdout.write(str(returned))
+            if cmpFunc(returned, value) == 0:
                 sys.stdout.write("\t\033[92mOK\033[0m\n")
             else:
-                sys.stdout.write("\t\033[91mFailed. Unexpected value: %s\033[0m\n" % tId)
+                sys.stdout.write("\t\033[91mFailed. Unexpected value: %s\033[0m\n" % returned)
             time.sleep(1)
+            
+    def listCmp(a, b):
+        if len(a) != len(b):
+            return cmp(a, b)
+        if all([i in b for i in a]):
+            return 0
+        return 1
+
     
     print("Running Ncbi Soap Tool tests")
     
@@ -428,6 +479,11 @@ if __name__ == "__main__":
         baseMap.save()
     except CacheNotUsedError:
         print("Deactivation of cache is working as expected")
+    
+    print("testing node name to ID map:")
+    nodeName2Id = TaxonomyNodeName2TaxId()
+    print("Successfully build mapping object")
+    test(nodeName2Id, taxNodeNametoIdTestSet, listCmp)
     
     print("testing scientific name to taxonomy ID map:")
     sciName2taxId = SpeciesName2TaxId()

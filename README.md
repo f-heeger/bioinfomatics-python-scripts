@@ -132,9 +132,11 @@ From a set of single end or paired end reads in a fasta or fastq file (or two fo
 Collection of tools to query [Ncbi](http://www.ncbi.nlm.nih.gov/). Most classes work as python dictionaries.
 
 #### NcbiSoapMap 
-Base class for querying NCBI via soap 
+Base class for querying NCBI via soap. Do not use directly!
 #### SpeciesName2TaxId 
 Map a scientific species name to a NCBI taxonomy ID
+#### TaxonomyNodeName2TaxId
+Map a Ncbi Taxonomy Node name to its ID. This is slitely different from the `SpeciesName2TaxId` map: It always returns a list, which contains multiple IDs for ambiguous node names and it also works for higher taxonomic levels and nodes that do not have a standard rank (like sub-phylum or no rank).
 #### LineageMap
 Map a NCBI taxonomy ID to the complete taxonomic lineage defined by the NCBI taxonomy tree. Return value will be a list of 3-tuples representing NCBI taxonomy nodes. The tuples will contain: rank, taxonomy ID, scientific name
 #### SingleLevelLineageMap
