@@ -6,26 +6,30 @@ import re
 from suds.client import Client as SoapClient
 from suds import plugin
 
+from Bio import Entrez
+from Bio.Entrez.Parser import ValidationError
+
 from MultiCachedDict import MultiCachedDict, SqliteCache
 
 class CacheNotUsedError(Exception):
     """Exception that is raised if the user tries to do cache operations 
     (save, load) on a Map where the cache is not active"""
 
-class NcbiSoapMap(dict):
-    """Base class for a dictonary relying in NCBI soap interface for assignments.
+class NcbiMap(dict):
+    """Base class for a dictonary relying on the BioPython NCBI interface for 
+    assignments.
     
-    This is an abstract base class for a dictonary that uses the NCBI soap 
+    This is an abstract base class for a dictonary that uses the BioPython NCBI 
     interface to represent relations between certain NCBI governed objects like
     genes, taxonomic objects or genomes.
     Key requests will be looked up from a dictonary. If the key is not available
-    a request to NCBI will be send via the SOAP interface. The result of this 
-    lookup will be stored in the local dictonary. The detaileds of the request
-    have to be implemeneted by inheriting calsses.
+    a request to NCBI will be send via the BioPython interface. The result of 
+    this lookup will be stored in the local dictonary. The detaileds of the 
+    request have to be implemeneted by inheriting calsses.
     The local dictonary can be saved to the hard drive as csv file and loaded
     when an object is copnstructed.
     """
-    def __init__(self, indict={}, cachePath=None, retry=0, useCache=True):
+    def __init__(self, email, indict={}, cachePath=None, retry=0, useCache=True):
         """Constuctor for mapping object.
         
         A dictonary of already known assignments can be passed via the indict
@@ -35,6 +39,7 @@ class NcbiSoapMap(dict):
         once).
         """
         dict.__init__(self, indict)
+        Entrez.email = email
         self.useCache = useCache
         if useCache:
             if not cachePath:
@@ -53,8 +58,7 @@ class NcbiSoapMap(dict):
         if key not in self:
             for tries in range(self.retry+1):
                 try:
-                    response = self.requestFunction(key)
-                    break
+                    handle = self.requestFunction(key)
                 except Exception as e:
                     if tries == self.retry:
                         raise KeyError("Problem with key: '%s'. "
@@ -65,7 +69,20 @@ class NcbiSoapMap(dict):
                         sys.stderr.write("Problem with key: '%s'. "
                                          "It raised an error: %s\n "
                                          "Will try again...\n" % (key, str(e)) )
-            self.readResponse(response, key)
+                else:
+                    #if no exception occured no retry is needed
+                    break
+            try:
+                response = Entrez.read(handle, validate=False)
+                self.readResponse(response, key)
+            except ValidationError as e:
+                sys.stderr.write("Problem while parsing response for key '%s'. "
+                                 "This might be due to outdatetd DTD files in "
+                                 "Biopython. Try updating from http://www.ncbi."
+                                 "nlm.nih.gov/data_specs/dtd/" % key)
+                raise e
+            finally:
+                handle.close()
         return dict.__getitem__(self, key)
             
     def requestFunction(key):
@@ -89,66 +106,63 @@ class NcbiSoapMap(dict):
         if self.useCache:
             self.save()
 
-class NcbiSoapBatchMap(NcbiSoapMap):
-    """Mapping object that will take a list of key and return a list of values 
-    instead of a single key value pair. Requests to NCBI will be done in batch 
-    mode with all keys that are not in the cache."""
-    
-    def __getitem__(self, keyList):
-        for key in keyList:
-            ncbiReqList = [key for key in keyList if key not in self]
-            
-            for tries in range(self.retry+1):
-                try:
-                    response = self.requestFunction(",".join([str(k) for k 
-                                                    in ncbiReqList]))
-                    break
-                except Exception as e:
-                    if tries == self.retry:
-                        raise ValueError("Problem with key: '%s'. "
-                                         "It raised an error: %s" 
-                                         % (key, str(e)))
-                    else:
-                        time.sleep(1)
-                        sys.stderr.write("Problem with key: '%s'. "
-                                         "It raised an error: %s\n "
-                                         "Will try again...\n" % (key, str(e)) )
-            self.readResponse(response, keyList)
-        return [dict.__getitem__(self, key) for key in keyList]
+#TODO: rwrite for non soap version
+#class NcbiSoapBatchMap(NcbiMap):
+#    """Mapping object that will take a list of key and return a list of values 
+#    instead of a single key value pair. Requests to NCBI will be done in batch 
+#    mode with all keys that are not in the cache."""
+#    
+#    def __getitem__(self, keyList):
+#        for key in keyList:
+#            ncbiReqList = [key for key in keyList if key not in self]
+#            
+#            for tries in range(self.retry+1):
+#                try:
+#                    response = self.requestFunction(",".join([str(k) for k 
+#                                                    in ncbiReqList]))
+#                    break
+#                except Exception as e:
+#                    if tries == self.retry:
+#                        raise ValueError("Problem with key: '%s'. "
+#                                         "It raised an error: %s" 
+#                                         % (key, str(e)))
+#                    else:
+#                        time.sleep(1)
+#                        sys.stderr.write("Problem with key: '%s'. "
+#                                         "It raised an error: %s\n "
+#                                         "Will try again...\n" % (key, str(e)) )
+#            self.readResponse(response, keyList)
+#        return [dict.__getitem__(self, key) for key in keyList]
 
-class SpeciesName2TaxId(NcbiSoapMap):
+class SpeciesName2TaxId(NcbiMap):
     """Map scientific names of species to their NCBI taxonomy DB ID.
     
     """
-    wsdlUrl="http://www.ncbi.nlm.nih.gov/soap/v2.0/eutils.wsdl"
     
     def requestFunction(self, key):
-        cl = SoapClient(self.wsdlUrl)
-        return cl.service.run_eSearch("taxonomy", key)
+        return Entrez.esearch(db="taxonomy", term=key)
         
     def readResponse(self, resp, key):
-        if int(resp.Count) > 1:
+        if int(resp["Count"]) > 1:
             self[key] = None
             raise ValueError("Problem with key: %s. It got multiple answers.")
-        self[key] = resp.IdList[0][0]
+        self[key] = resp["IdList"][0]
 
-class TaxonomyNodeName2TaxId(NcbiSoapMap):
+class TaxonomyNodeName2TaxId(NcbiMap):
     """Map names of NCBI taxonomy DB nodes to a list of IDs of nodes with this 
     name.
     
     One name can be mapped to several nodes (IDs), so the return value is always
     a list.
     """
-    wsdlUrl="http://www.ncbi.nlm.nih.gov/soap/v2.0/eutils.wsdl"
     
     def requestFunction(self, key):
-        cl = SoapClient(self.wsdlUrl)
-        return cl.service.run_eSearch("taxonomy", key)
+        return Entrez.esearch(db="taxonomy", term=key)
         
     def readResponse(self, resp, key):
-        if int(resp.Count) == 0:
+        if int(resp["Count"]) == 0:
             raise KeyError()
-        self[key] = resp.IdList[0]
+        self[key] = resp["IdList"]
         
     def save(self):
         if not self.useCache:
@@ -170,21 +184,19 @@ class TaxonomyNodeName2TaxId(NcbiSoapMap):
                 self[tax] = []
             self[tax].append(name)
 
-class LineageMap(NcbiSoapMap):
+class LineageMap(NcbiMap):
     """Map NCBI taxonomy IDs to full lineage information from NCBI taxonomy.
     
     Returns a list of tuples of the form (<Rank>, <Taxonomy Node ID>, 
     <Taxonomy Node Name>).
     """
-    wsdlUrl = "http://www.ncbi.nlm.nih.gov/soap/v2.0/efetch_taxon.wsdl"
     
     def requestFunction(self, key):
-        cl = SoapClient(self.wsdlUrl)
-        return cl.service.run_eFetch(str(key))
+        return Entrez.efetch(db="taxonomy", id=str(key))
     
     def readResponse(self, resp, key):
         m = []
-        for r in resp.TaxaSet[0][0]["LineageEx"][0]:
+        for r in resp[0]["LineageEx"]:
             m.append((r["Rank"], r["TaxId"], r["ScientificName"]))
         self[key] = m
         
@@ -216,41 +228,37 @@ class SingleLevelLineageMap(LineageMap):
     <Taxonomy Node Name>).
     """
     
-    def __init__(self, level, indict={}, cachePath=None, retry=0, useCache=True):
-        NcbiSoapMap.__init__(self, indict, cachePath, retry, useCache)
+    def __init__(self, email, level, indict={}, cachePath=None, retry=0, useCache=True):
+        NcbiSoapMap.__init__(self, email, indict, cachePath, retry, useCache)
         self.level = level
         
     def readResponse(self, resp, key):
         m = []
-        for r in resp.TaxaSet[0][0]["LineageEx"][0]:
+        for r in resp[0]["LineageEx"]:
             if r["Rank"] == self.level:
                 m.append((r["Rank"], r["TaxId"], r["ScientificName"]))
         self[key] = m
 
-class TaxonomyParentMap(NcbiSoapMap):
+class TaxonomyParentMap(NcbiMap):
     """Map NCBI taxonomy IDs to the ID of its parent node in NCBI taxonomy.
     """
-    wsdlUrl = "http://www.ncbi.nlm.nih.gov/soap/v2.0/efetch_taxon.wsdl"
     
     def requestFunction(self, key):
-        cl = SoapClient(self.wsdlUrl)
-        return cl.service.run_eFetch(str(key))
+        return Entrez.efetch(db="taxonomy", id=str(key))
     
     def readResponse(self, resp, key):
         try:
-            self[key] = resp.TaxaSet[0][0]["ParentTaxId"]
+            self[key] = resp[0]["ParentTaxId"]
         except TypeError:
             self[key] = -1
 
-class NuclId2TaxIdMap(NcbiSoapMap):
+class NuclId2TaxIdMap(NcbiMap):
     """Map NCBI nucleotide GIs to the taxonomy ID of the species they come from.
     
     """
-    wsdlUrl = "http://www.ncbi.nlm.nih.gov/soap/v2.0/efetch_seq.wsdl"
     
     def requestFunction(self, key):
-        cl = SoapClient(self.wsdlUrl)
-        return cl.service.run_eFetch("nucleotide", str(key))
+        return Entrez.efetch(db="nucleotide", id=str(key), retmode="xml")
     
     def readResponse(self, resp, key):
         if len(resp) < 1:
@@ -265,19 +273,16 @@ class NuclId2TaxIdMap(NcbiSoapMap):
         # the feature list is not actually a list
         #here is a work around:
         try:
-            if type(resp["GBSet"][0]["GBSeq_feature-table"][0]) != type([]):
-                feature_list = [resp["GBSet"][0]["GBSeq_feature-table"][0]]
-            else:
-                feature_list = resp["GBSet"][0]["GBSeq_feature-table"][0]
+            feature_list = resp[0]["GBSeq_feature-table"]
             for feature in feature_list:
                 if feature["GBFeature_key"] == "source":
-                    for qual in feature["GBFeature_quals"][0]:
+                    for qual in feature["GBFeature_quals"]:
                         if qual["GBQualifier_name"] == "db_xref":
                             match = re.match("taxon:(\d+)", 
                                              qual["GBQualifier_value"])
                             if match:
                                 self[key] = match.group(1)
-                                return True
+                                return
         except Exception as e:
             sys.stderr.write(str(resp))
             raise KeyError("'%s' is not in the dictonary. "
@@ -287,17 +292,14 @@ class NuclId2TaxIdMap(NcbiSoapMap):
                        "NCBI response did not contain taxonomy inforamtion. "
                        "NCBI response was:\n%s" % (key, str(resp)[:100]))
 
-class NuclId2SpeciesNameMap(NcbiSoapMap):
+class NuclId2SpeciesNameMap(NcbiMap):
     """Map NCBI nucleotide GIs to the scientific name of the species they 
     come from.
     
     """
     
-    wsdlUrl = "http://www.ncbi.nlm.nih.gov/soap/v2.0/efetch_seq.wsdl"
-    
     def requestFunction(self, key):
-        cl = SoapClient(self.wsdlUrl)
-        return cl.service.run_eFetch("nucleotide", str(key))
+        return Entrez.efetch(db="nucleotide", id=str(key), retmode="xml")
     
     def readResponse(self, resp, key):
         if len(resp) < 1:
@@ -305,25 +307,24 @@ class NuclId2SpeciesNameMap(NcbiSoapMap):
                            "NCBI response did not contain taxonomy information.")
         if len(resp) > 1:
             self[key] = None
-            import pdb; pdb.set_trace()
             raise ValueError("Problem with key: %s. "
                              "It got multiple answers." % key)
-        organism = resp[0][0].GBSeq_organism
+        organism = resp[0]["GBSeq_organism"]
         if "Unknown" in organism:
             raise ValueError("Source of sequence is given as 'unknown' in NCBI")
         self[key] = organism
         
 
 class CachedNuclId2TaxIdMap(MultiCachedDict):
-    def __init__(self, dbPath):
-        ncbi = NuclId2TaxIdMap(useCache=False)
+    def __init__(self, dbPath, email):
+        ncbi = NuclId2TaxIdMap(email, useCache=False)
         database = SqliteCache(filePath=dbPath, indict=None, table="gi2tax", 
                                key="gi", value="tax")
         MultiCachedDict.__init__(self, None, [database, ncbi])
         
 class CachedTaxonomyParentMap(MultiCachedDict):
-    def __init__(self, dbPath):
-        ncbi = TaxonomyParentMap(useCache=False)
+    def __init__(self, dbPath, email):
+        ncbi = TaxonomyParentMap(email, useCache=False)
         database = SqliteCache(filePath=dbPath, indict=None, table="tax2parent", 
                                key="tax", value="parent")
         MultiCachedDict.__init__(self, None, [database, ncbi])
@@ -332,17 +333,17 @@ class NcbiTaxonomyTree(object):
     """Representation of the NCBI taxonoy tree.
     
     Can be querried for information on the tree with a taxonomy ID."""
-    def __init__(self, cachePath=None):
+    def __init__(self, email, cachePath=None):
         """Constructor for NCBI taxonomy tree class.
         
         If cache path is given and not None the database at that path will be 
         used as persistent cache.
         """
         if cachePath is None:
-            self._parent = TaxonomyParentMap(useCache=False)
+            self._parent = TaxonomyParentMap(email, useCache=False)
             self.cached = False
         else:
-            self._parent = CachedTaxonomyParentMap(cachePath)
+            self._parent = CachedTaxonomyParentMap(email, cachePath)
             self.cached = True
         
     def initialize(self, dmpPath):
@@ -470,39 +471,40 @@ if __name__ == "__main__":
             return 0
         return 1
 
+    email="fheeger@mi.fu-berlin.de"
     
     print("Running Ncbi Soap Tool tests")
     
     print("testing cache usage option")
-    baseMap = NcbiSoapMap(useCache=False)
+    baseMap = NcbiMap(email, useCache=False)
     try:
         baseMap.save()
     except CacheNotUsedError:
         print("Deactivation of cache is working as expected")
     
     print("testing node name to ID map:")
-    nodeName2Id = TaxonomyNodeName2TaxId()
+    nodeName2Id = TaxonomyNodeName2TaxId(email)
     print("Successfully build mapping object")
     test(nodeName2Id, taxNodeNametoIdTestSet, listCmp)
     
     print("testing scientific name to taxonomy ID map:")
-    sciName2taxId = SpeciesName2TaxId()
+    sciName2taxId = SpeciesName2TaxId(email)
     print("Successfully build mapping object")
     test(sciName2taxId, sciNam2IdTestSet)
 
     
     print("testing nuclear ID to scientific name (taxonomy) map:")
-    nuclId2taxName = NuclId2SpeciesNameMap()
+    nuclId2taxName = NuclId2SpeciesNameMap(email)
     print("Successfully build mapping object")
     test(nuclId2taxName, nucl2taxNameTestSet)
     
     print("testing nuclear ID to taxonomy ID map:")
-    nuclId2taxId = NuclId2TaxIdMap()
+    nuclId2taxId = NuclId2TaxIdMap(email)
     print("Successfully build mapping object")
     test(nuclId2taxId, nucl2taxIdTestSet)
     
     print("testing lineage map")
-    lineageMap = LineageMap()
+    lineageMap = LineageMap(email)
     print("Successfully build mapping object")
     sys.stdout.write("polar bear <-> brown bear\t")
     brownBear = lineageMap[9644]
@@ -525,19 +527,22 @@ if __name__ == "__main__":
         sys.stdout.write("Failed. Lineages should be different\n")
     else:
         sys.stdout.write("OK\n")
+
     print("testing Cached gi to tax id mapping")
-    cGi2tax = CachedNuclId2TaxIdMap("/tmp/testDb.db")
+    cGi2tax = CachedNuclId2TaxIdMap("/tmp/testDb.db", email)
     print("Succsessfully build mapping object")
     #TODO write test for functionality
+    
     print("testing taxonomy parent map")
-    taxParent = TaxonomyParentMap()
+    taxParent = TaxonomyParentMap(email)
     print("Succsessfully build mapping object")
     test(taxParent, taxParentTestSet)
+    
     print("testing save/load functions")
     sciName2taxId.cachePath = "/tmp/testSave.csv"
     sciName2taxId.save()
     print("saved successful")
-    sciName2taxId = SpeciesName2TaxId(cachePath="/tmp/testSave.csv")
+    sciName2taxId = SpeciesName2TaxId(email, cachePath="/tmp/testSave.csv")
     test(sciName2taxId, sciNam2IdTestSet)
     print("loaded successful")
     print("done testing")
