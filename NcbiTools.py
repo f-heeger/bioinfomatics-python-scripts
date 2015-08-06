@@ -343,7 +343,7 @@ class NcbiTaxonomyTree(object):
             self._parent = TaxonomyParentMap(email, useCache=False)
             self.cached = False
         else:
-            self._parent = CachedTaxonomyParentMap(email, cachePath)
+            self._parent = CachedTaxonomyParentMap(cachePath, email)
             self.cached = True
         
     def initialize(self, dmpPath):
@@ -388,6 +388,22 @@ class NcbiTaxonomyTree(object):
               and all([lin[0][lvl] == lin[i][lvl] for i in range(1, len(lin))]):
             lvl+=1
         return lin[0][lvl-1]
+        
+    def lcn(self, taxList):
+        """Return the NCBI taxonomy ID of the lowest common node in the 
+        NCBI taxonomy tree of a list of given taxonomy IDs.
+        
+        This is very similar to the LCA but for nodes that are part of a path
+        from the root to one of them the lowest node will be choosen."""
+        
+        lin = [self.lineage(tax) for tax in set(taxList)]
+        lvl = 0
+        while lvl < max([len(l) for l in lin]):
+            active = [l for l in lin if len(l) > lvl]
+            if not all([active[0][lvl] == l[lvl] for l in active[1:]]):
+                break
+            lvl += 1
+        return active[0][lvl-1]
 
 if __name__ == "__main__":
     import logging
@@ -411,46 +427,51 @@ if __name__ == "__main__":
 #    logging.basicConfig(level=logging.INFO)
 #    logging.getLogger('suds.client').setLevel(logging.DEBUG)
     
-    sciNam2IdTestSet = {"Homo sapiens": "9606",
-                        "Mus musculus": "10090",
-                        "Human immunodeficiency virus 1": "11676",
-                        "Escherichia coli": "562",
-                        "Clavariopsis aquatica": "253306",
-                        }
+    sciNam2IdTestSet = [("Homo sapiens", "9606"),
+                        ("Mus musculus", "10090"),
+                        ("Human immunodeficiency virus 1", "11676"),
+                        ("Escherichia coli", "562"),
+                        ("Clavariopsis aquatica", "253306"),
+                        ]
                         
-    nucl2taxNameTestSet = {297822720: "Arabidopsis lyrata subsp. lyrata",
-                           237825467: "Clavariopsis aquatica",
-                           21694053: "Homo sapiens",
-                           34559759: "Rupicapra rupicapra",
-                           666359714: "Ursus maritimus",
-                           }
+    nucl2taxNameTestSet = [(297822720, "Arabidopsis lyrata subsp. lyrata"),
+                           (237825467, "Clavariopsis aquatica"),
+                           (21694053, "Homo sapiens"),
+                           (34559759, "Rupicapra rupicapra"),
+                           (666359714, "Ursus maritimus"),
+                           ]
                        
-    nucl2taxIdTestSet = {297822720: "81972",
-                         237825467: "253306",
-                         21694053: "9606",
-                         34559759: "34869",
-                         666359714: "29073",
-                         }
+    nucl2taxIdTestSet = [(297822720, "81972"),
+                         (237825467, "253306"),
+                         (21694053, "9606"),
+                         (34559759, "34869"),
+                         (666359714, "29073"),
+                         ]
                          
-    taxParentTestSet = {666681: "1055487",
-                        4890: "451864",
-                        63221: "9606",
-                        9606: "9605",
-                        153057: "327045",
-                        } 
+    taxParentTestSet = [(666681, "1055487"),
+                        (4890, "451864"),
+                        (63221, "9606"),
+                        (9606, "9605"),
+                        (153057, "327045"),
+                        ] 
                         
-    taxNodeNametoIdTestSet = {"Clavariopsis aquatica": ["253306"],
-                              "leotiomyceta": ["716546"],
-                              "Escherichia coli": ["562"],
-                              "Bacteria": ["2", "629395"],
-                              "cellular organisms": ["131567"]
-                             }
+    taxNodeNametoIdTestSet = [("Clavariopsis aquatica", ["253306"]),
+                              ("leotiomyceta", ["716546"]),
+                              ("Escherichia coli", ["562"]),
+                              ("Bacteria", ["2", "629395"]),
+                              ("cellular organisms", ["131567"])
+                             ]
+                             
+    lcnTestSet = [([1491027, 341667, 577457, 42310], "42310"),
+                  ([109873, 4751, 451459, 4805], "109873"),
+                  ([2, 414713,85026, 1760], "1760"),
+                 ]
     
-    def test(mapObj, data, cmpFunc=cmp):
-        for key, value in data.items():
+    def test(mapObj, data, cmpFunc=cmp, testFunc="__getitem__"):
+        for key, value in data:
             sys.stdout.write("%s\t" % key)
             try:
-                returned = mapObj[key]
+                returned = getattr(mapObj, testFunc)(key)
             except Exception as e:
                 import traceback
                 sys.stderr.write(traceback.format_exc())
@@ -462,7 +483,6 @@ if __name__ == "__main__":
                 sys.stdout.write("\t\033[92mOK\033[0m\n")
             else:
                 sys.stdout.write("\t\033[91mFailed. Unexpected value: %s\033[0m\n" % returned)
-            time.sleep(1)
             
     def listCmp(a, b):
         if len(a) != len(b):
@@ -473,7 +493,7 @@ if __name__ == "__main__":
 
     email="fheeger@mi.fu-berlin.de"
     
-    print("Running Ncbi Soap Tool tests")
+    print("Running Ncbi Tool tests")
     
     print("testing cache usage option")
     baseMap = NcbiMap(email, useCache=False)
@@ -537,6 +557,12 @@ if __name__ == "__main__":
     taxParent = TaxonomyParentMap(email)
     print("Succsessfully build mapping object")
     test(taxParent, taxParentTestSet)
+    
+    print("testing LCN")
+    ncbiTree = NcbiTaxonomyTree(email,
+                                "/home/heeger/data/ncbi_tax/tax2parent.db")
+    print("Succsessfully build mapping object")
+    test(ncbiTree, lcnTestSet, testFunc="lcn")
     
     print("testing save/load functions")
     sciName2taxId.cachePath = "/tmp/testSave.csv"
