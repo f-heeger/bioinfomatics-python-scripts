@@ -195,7 +195,9 @@ class LineageMap(NcbiMap):
         return Entrez.efetch(db="taxonomy", id=str(key))
     
     def readResponse(self, resp, key):
-        m = []
+        if len(resp) == 0:
+            raise KeyError("No result for lineage of species '%s'" % key)
+        m = [(resp[0]["Rank"], resp[0]["TaxId"], resp[0]["ScientificName"])]
         for r in resp[0]["LineageEx"]:
             m.append((r["Rank"], r["TaxId"], r["ScientificName"]))
         self[key] = m
@@ -229,14 +231,19 @@ class SingleLevelLineageMap(LineageMap):
     """
     
     def __init__(self, email, level, indict={}, cachePath=None, retry=0, useCache=True):
-        NcbiSoapMap.__init__(self, email, indict, cachePath, retry, useCache)
+        NcbiMap.__init__(self, email, indict, cachePath, retry, useCache)
         self.level = level
         
     def readResponse(self, resp, key):
+        if len(resp) == 0:
+            raise KeyError("No result for lineage of species '%s'" % key)
         m = []
+        if resp[0]["Rank"] == self.level:
+            m.append((resp[0]["Rank"], resp[0]["TaxId"], resp[0]["ScientificName"]))
         for r in resp[0]["LineageEx"]:
             if r["Rank"] == self.level:
                 m.append((r["Rank"], r["TaxId"], r["ScientificName"]))
+                break
         self[key] = m
 
 class TaxonomyParentMap(NcbiMap):
