@@ -11,35 +11,55 @@ from Bio.SeqIO import parse
 
 from NcbiTools import SingleLevelLineageMap, CachedNuclId2TaxIdMap
 
+global EMAIL
+EMAIL="fheeger@mi.fu-berlin.de"
 
-def getData(stream, inFormat, ranks, log=None):
+def readSeq2SpecFile(path):
+    seq2spec = {}
+    with open(path) as seq2specFile:
+        for line in seq2specFile:
+            seq, taxonId = line.strip().split("\t")
+            seq2spec[seq] = taxonId
+    return seq2spec
+
+def getData(stream, inFormat, ranks, seq2sepc=None, log=None):
     """Extract sequence ID and length of the sequecene from fast(a|q)"""
-    GI2TAX_DBPATH = "/home/heeger/data/dbs/gi_taxid_nucl.db"
+    if seq2spec is None:
+        GI2TAX_DBPATH = "/home/heeger/data/dbs/gi_taxid_nucl.db"
+        gi2spec = CachedNuclId2TaxIdMap(EMAIL, GI2TAX_DBPATH)
     mapping = {}
-    gi2spec = CachedNuclId2TaxIdMap(GI2TAX_DBPATH)
     spec2rank = {}
     for rank in ranks:
-        spec2rank[rank] = SingleLevelLineageMap(rank, cachePath="spec2%s.csv" % rank, retry=1)
+        spec2rank[rank] = SingleLevelLineageMap(EMAIL, rank, cachePath="spec2%s.csv" % rank, retry=1)
         mapping[rank] = []
     try:
         for rec in parse(stream, inFormat):
-            gi = rec.id.split("|", 2)[1]
             try:
-                spec = gi2spec[gi]
+                if seq2spec is None:
+                    gi = rec.id.split("|", 2)[1]
+                    spec = gi2spec[gi]
+                else:
+                    spec = seq2spec[rec.id]
             except KeyError:
+                #if we can not get a species ID all the entries of the lieange are NA
                 for rank in ranks:
                     mapping[rank].append((rec.id, len(rec), "NA"))
             else:
+                #if no error occured (i.e. we have species ID) get the lineafe and continue accordingly
                 for rank in ranks:
-                    d = spec2rank[rank][spec]
-                    if len(d) > 1:
-                        raise ValueError("More than one taxonomy group of "
-                                         "rank '%s' for gi '%s'" % (rank, gi))
-                    if len(d) == 0:
-                        tax = "NA"
+                    try:
+                        d = spec2rank[rank][spec]
+                    except KeyError:
+                        mapping[rank].append((rec.id, len(rec), "NA"))
                     else:
-                        tax = d[0][2]
-                    mapping[rank].append((rec.id, len(rec), tax))
+                        if len(d) > 1:
+                            raise ValueError("More than one taxonomy group of "
+                                             "rank '%s' for gi '%s'" % (rank, gi))
+                        if len(d) == 0:
+                            tax = "NA"
+                        else:
+                            tax = d[0][2]
+                        mapping[rank].append((rec.id, len(rec), tax))
     finally:
         for lineageMap in spec2rank.values():
             lineageMap.save()
@@ -125,6 +145,13 @@ if __name__ == "__main__":
     parser.add_option("-l", "--log-yaxis",
                       action="store_true", dest="ylog",
                       default=False, help="create plot with logarithmic y-axis",)
+    parser.add_option("-c", "--custom-mapping", dest="seq2speciesMap",
+                      default=None, 
+                      help="path to a tab sepearated file mapping from sequence"
+                           " ID to taxonomy ID, to use instead of using the "
+                           "gi numbers inside the sequence ID to query NCBI for"
+                           " a mapping",
+                      metavar="/path/to/mappingfile.tsv")
     parser.add_option("-r", "--rank",
                       action="append", type="string", dest="ranks",
                       default=None, 
@@ -168,9 +195,14 @@ if __name__ == "__main__":
         for r in ranks:
             if r not in known_ranks:
                 parser.error("Unknown rank: '%s'" % r)
+    seq2spec = None
+    if not options.seq2speciesMap is None:
+        if not log is None:
+            log.write("Reading sequence to species mapping file...\n")
+        seq2spec = readSeq2SpecFile(options.seq2speciesMap)
     if not log is None:
         log.write("Reading data...\n")
-    mapping = getData(inStream, fileType, ranks, sys.stderr)
+    mapping = getData(inStream, fileType, ranks, seq2spec, sys.stderr)
     for rank, d in mapping.items():
         if not log is None:
             log.write("Plotting %i data points for rank '%s'...\n" % (len(d),rank))
