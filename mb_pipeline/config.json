@@ -1,0 +1,10 @@
+{
+    "samples" : ["CUB.out.ITS1"],
+    "mothur" : "/home/heeger/bin/Mothur.cen_64/mothur/mothur",
+    "megan" : "/home/heeger/megan/MEGAN",
+    "krona" : "ktImportTaxonomy",
+    "blast_bin_folder": "/home/heeger/bin/ncbi-blast-2.2.29+/bin/",
+    "blast_threshold": 0.000001,
+    "blast_db_folder": "/home/heeger/spree/NO_BACKUP/heeger/fungiMetabarcoding/MiSeqRun1_LongRange/blastDbs",
+    "synonym_file" : "/home/heeger/spree/NO_BACKUP/heeger/fungiMetabarcoding/MiSeqRun1_LongRange/blastDbs/seq2gi_mapping.txt"
+}
