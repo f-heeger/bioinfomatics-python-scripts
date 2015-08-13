@@ -6,7 +6,7 @@ from snakemake.utils import R
 configfile: "config.json"
 
 rule all:
-    input: expand(["{sample}.full.good.unique.abund.otus.krona.html", "{sample}.full.good.unique.abund.otus.rarefaction.pdf"], sample=config["samples"])
+    input: expand(["{sample}.full.good.unique.abund.otus.krona.html", "{sample}.full.good.unique.abund.otus.rarefaction.pdf", "{sample}.full.good.unique.abund.otus.sizeDist.pdf"], sample=config["samples"])
 
 rule extractFull:
     input: "{sample}.full_and_partial.fasta"
@@ -113,6 +113,12 @@ rule usearchStats:
             for otu, seqList in listTab.items():
                 for seq in seqList:
                     out.write("%s\t%s\n" % (seq, otu))
+
+rule plotOtuSizeDist:
+    input: "{sample}.full.good.unique.abund.otus.counts.tsv"
+    output: "{sample}.full.good.unique.abund.otus.sizeDist.pdf"
+    run:
+        R("library(ggplot2)\nd=read.table(\"%s\")\npd = as.data.frame(cbind(seq(1,length(d$V2)), d$V2[order(d$V2, decreasing=T)]))\np=ggplot(pd) + geom_segment(aes(x=V1, xend=V1, y=V2, yend=0)) + xlab(\"OTU rank\") + ylab(\"size\") + ggtitle(\"%s - OTU size distribution\")\nggsave(\"%s\", p)" % (input[0], "{wildcards.sample}", output[0]))
 
 rule computRarefaction:
     input: "{sample}.full.good.unique.abund.otus.list"
