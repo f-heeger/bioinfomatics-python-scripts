@@ -153,7 +153,7 @@ class TaxonomyNodeName2TaxId(NcbiMap):
     name.
     
     One name can be mapped to several nodes (IDs), so the return value is always
-    a list.
+    a set.
     """
     
     def requestFunction(self, key):
@@ -162,7 +162,7 @@ class TaxonomyNodeName2TaxId(NcbiMap):
     def readResponse(self, resp, key):
         if int(resp["Count"]) == 0:
             raise KeyError()
-        self[key] = resp["IdList"]
+        self[key] = set(resp["IdList"])
         
     def save(self):
         if not self.useCache:
@@ -181,8 +181,8 @@ class TaxonomyNodeName2TaxId(NcbiMap):
         for row in csv.reader(open(self.cachePath, "rb")):
             name, tax = row
             if tax not in self:
-                self[tax] = []
-            self[tax].append(name)
+                self[tax] = set()
+            self[tax].add(name)
 
 class LineageMap(NcbiMap):
     """Map NCBI taxonomy IDs to full lineage information from NCBI taxonomy.
@@ -197,9 +197,10 @@ class LineageMap(NcbiMap):
     def readResponse(self, resp, key):
         if len(resp) == 0:
             raise KeyError("No result for lineage of species '%s'" % key)
-        m = [(resp[0]["Rank"], resp[0]["TaxId"], resp[0]["ScientificName"])]
+        m = []
         for r in resp[0]["LineageEx"]:
             m.append((r["Rank"], r["TaxId"], r["ScientificName"]))
+        m.append((resp[0]["Rank"], resp[0]["TaxId"], resp[0]["ScientificName"]))
         self[key] = m
         
     def save(self):
@@ -412,170 +413,4 @@ class NcbiTaxonomyTree(object):
             lvl += 1
         return active[0][lvl-1]
 
-if __name__ == "__main__":
-    import logging
-    import re
 
-    class DebugPlugin(plugin.MessagePlugin):
-        def received(self, context):
-            import pdb; pdb.set_trace()
-
-    class InitDebugPlugin(plugin.InitPlugin):
-        def initialized(self, context):
-            import pdb; pdb.set_trace()
-
-    def lineageTest(a,b):
-        for rowA, rowB in zip(a, b):
-            for colA, colB in zip(rowA, rowB):
-                if colA != colB:
-                    return False
-        return True
-
-#    logging.basicConfig(level=logging.INFO)
-#    logging.getLogger('suds.client').setLevel(logging.DEBUG)
-    
-    sciNam2IdTestSet = [("Homo sapiens", "9606"),
-                        ("Mus musculus", "10090"),
-                        ("Human immunodeficiency virus 1", "11676"),
-                        ("Escherichia coli", "562"),
-                        ("Clavariopsis aquatica", "253306"),
-                        ]
-                        
-    nucl2taxNameTestSet = [(297822720, "Arabidopsis lyrata subsp. lyrata"),
-                           (237825467, "Clavariopsis aquatica"),
-                           (21694053, "Homo sapiens"),
-                           (34559759, "Rupicapra rupicapra"),
-                           (666359714, "Ursus maritimus"),
-                           ]
-                       
-    nucl2taxIdTestSet = [(297822720, "81972"),
-                         (237825467, "253306"),
-                         (21694053, "9606"),
-                         (34559759, "34869"),
-                         (666359714, "29073"),
-                         ]
-                         
-    taxParentTestSet = [(666681, "1055487"),
-                        (4890, "451864"),
-                        (63221, "9606"),
-                        (9606, "9605"),
-                        (153057, "327045"),
-                        ] 
-                        
-    taxNodeNametoIdTestSet = [("Clavariopsis aquatica", ["253306"]),
-                              ("leotiomyceta", ["716546"]),
-                              ("Escherichia coli", ["562"]),
-                              ("Bacteria", ["2", "629395"]),
-                              ("cellular organisms", ["131567"])
-                             ]
-                             
-    lcnTestSet = [([1491027, 341667, 577457, 42310], "42310"),
-                  ([109873, 4751, 451459, 4805], "109873"),
-                  ([2, 414713,85026, 1760], "1760"),
-                 ]
-    
-    def test(mapObj, data, cmpFunc=cmp, testFunc="__getitem__"):
-        for key, value in data:
-            sys.stdout.write("%s\t" % key)
-            try:
-                returned = getattr(mapObj, testFunc)(key)
-            except Exception as e:
-                import traceback
-                sys.stderr.write(traceback.format_exc())
-                sys.stdout.write("\tFailed. Exception raised: \"%s\". "
-                                 "See log file for more information\n" % str(e))
-                continue
-            sys.stdout.write(str(returned))
-            if cmpFunc(returned, value) == 0:
-                sys.stdout.write("\t\033[92mOK\033[0m\n")
-            else:
-                sys.stdout.write("\t\033[91mFailed. Unexpected value: %s\033[0m\n" % returned)
-            
-    def listCmp(a, b):
-        if len(a) != len(b):
-            return cmp(a, b)
-        if all([i in b for i in a]):
-            return 0
-        return 1
-
-    email="fheeger@mi.fu-berlin.de"
-    
-    print("Running Ncbi Tool tests")
-    
-    print("testing cache usage option")
-    baseMap = NcbiMap(email, useCache=False)
-    try:
-        baseMap.save()
-    except CacheNotUsedError:
-        print("Deactivation of cache is working as expected")
-    
-    print("testing node name to ID map:")
-    nodeName2Id = TaxonomyNodeName2TaxId(email)
-    print("Successfully build mapping object")
-    test(nodeName2Id, taxNodeNametoIdTestSet, listCmp)
-    
-    print("testing scientific name to taxonomy ID map:")
-    sciName2taxId = SpeciesName2TaxId(email)
-    print("Successfully build mapping object")
-    test(sciName2taxId, sciNam2IdTestSet)
-
-    
-    print("testing nuclear ID to scientific name (taxonomy) map:")
-    nuclId2taxName = NuclId2SpeciesNameMap(email)
-    print("Successfully build mapping object")
-    test(nuclId2taxName, nucl2taxNameTestSet)
-    
-    print("testing nuclear ID to taxonomy ID map:")
-    nuclId2taxId = NuclId2TaxIdMap(email)
-    print("Successfully build mapping object")
-    test(nuclId2taxId, nucl2taxIdTestSet)
-    
-    print("testing lineage map")
-    lineageMap = LineageMap(email)
-    print("Successfully build mapping object")
-    sys.stdout.write("polar bear <-> brown bear\t")
-    brownBear = lineageMap[9644]
-    polarBear = lineageMap[29073]
-    if lineageTest(brownBear, polarBear):
-        sys.stdout.write("OK\n")
-    else:
-        sys.stdout.write("Failed. Lineages should be the same\n")
-    sys.stdout.write("E. coli <-> E. alberti\t")
-    ecoli = lineageMap[562]
-    ealbertii = lineageMap[208962]
-    if lineageTest(ecoli, ealbertii):
-        sys.stdout.write("OK\n")
-    else:
-        sys.stdout.write("Failed. Lineages sould be the same\n")
-    sys.stdout.write("mouse <-> rat\t")
-    mouse = lineageMap[10090]
-    rat = lineageMap[10116]
-    if lineageTest(mouse, rat):
-        sys.stdout.write("Failed. Lineages should be different\n")
-    else:
-        sys.stdout.write("OK\n")
-
-    print("testing Cached gi to tax id mapping")
-    cGi2tax = CachedNuclId2TaxIdMap("/tmp/testDb.db", email)
-    print("Succsessfully build mapping object")
-    #TODO write test for functionality
-    
-    print("testing taxonomy parent map")
-    taxParent = TaxonomyParentMap(email)
-    print("Succsessfully build mapping object")
-    test(taxParent, taxParentTestSet)
-    
-    print("testing LCN")
-    ncbiTree = NcbiTaxonomyTree(email,
-                                "/home/heeger/data/ncbi_tax/tax2parent.db")
-    print("Succsessfully build mapping object")
-    test(ncbiTree, lcnTestSet, testFunc="lcn")
-    
-    print("testing save/load functions")
-    sciName2taxId.cachePath = "/tmp/testSave.csv"
-    sciName2taxId.save()
-    print("saved successful")
-    sciName2taxId = SpeciesName2TaxId(email, cachePath="/tmp/testSave.csv")
-    test(sciName2taxId, sciNam2IdTestSet)
-    print("loaded successful")
-    print("done testing")
