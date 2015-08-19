@@ -300,6 +300,24 @@ class NuclId2TaxIdMap(NcbiMap):
                        "NCBI response did not contain taxonomy inforamtion. "
                        "NCBI response was:\n%s" % (key, str(resp)[:100]))
 
+
+class TaxIdToSpeciesNameMap(NcbiMap):
+    """Map NCBI taxonomy IDs to the scientific name of the species
+    
+    """
+    def requestFunction(self, key):
+        return Entrez.efetch(db="taxonomy", id=str(key), retmode="xml")
+
+    def readResponse(self, resp, key):
+        if len(resp) < 1:
+            raise KeyError("'%s' is not in the dictionary. "
+                           "NCBI response was empty.")
+        if len(resp) > 1:
+            self[key] = None
+            raise ValueError("Problem with key: %s. "
+                             "It got multiple answers." % key)
+        self[key] = resp[0]['ScientificName']
+
 class NuclId2SpeciesNameMap(NcbiMap):
     """Map NCBI nucleotide GIs to the scientific name of the species they 
     come from.

@@ -135,6 +135,8 @@ Collection of tools to query [Ncbi](http://www.ncbi.nlm.nih.gov/). Most classes 
 Base class for querying NCBI via BioPyhton and the NCBI web interface. Do not use directly!
 #### SpeciesName2TaxId 
 Map a scientific species name to a NCBI taxonomy ID
+#### TaxId2SpeciesNameMap
+Map a NCBI taxonomy ID to a scientific species name
 #### TaxonomyNodeName2TaxId
 Map a Ncbi Taxonomy Node name to its ID. This is slitely different from the `SpeciesName2TaxId` map: It always returns a list, which contains multiple IDs for ambiguous node names and it also works for higher taxonomic levels and nodes that do not have a standard rank (like sub-phylum or no rank).
 #### LineageMap

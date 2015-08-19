@@ -49,7 +49,17 @@ class SciNam2IdTest(mapTest, unittest.TestCase):
                         ("Escherichia coli", "562"),
                         ("Clavariopsis aquatica", "253306"),
                        ]
-        self.map = SpeciesName2TaxId(email)
+        self.map = SpeciesName2TaxId(email, retry=3)
+
+class TaxIdToSpeciesNameTest(mapTest, unittest.TestCase):
+    def setUp(self):
+        self.testSet = [("9606", "Homo sapiens"),
+                        ("10090", "Mus musculus"),
+                        ("11676", "Human immunodeficiency virus 1"),
+                        ("562", "Escherichia coli"),
+                        ("253306", "Clavariopsis aquatica"),
+                       ]
+        self.map = TaxIdToSpeciesNameMap(email)
 
 
 class Nucl2taxNameTest(mapTest, unittest.TestCase):
