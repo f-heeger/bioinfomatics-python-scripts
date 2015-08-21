@@ -198,8 +198,13 @@ class LineageMap(NcbiMap):
         if len(resp) == 0:
             raise KeyError("No result for lineage of species '%s'" % key)
         m = []
-        for r in resp[0]["LineageEx"]:
-            m.append((r["Rank"], r["TaxId"], r["ScientificName"]))
+        if "LineageEx" not in resp[0]:
+            if resp[0]["ScientificName"] != "root":
+                raise ValueError("Wired NCBi reponse without lineage info: %s" 
+                                 % str(resp))
+        else:
+            for r in resp[0]["LineageEx"]:
+                m.append((r["Rank"], r["TaxId"], r["ScientificName"]))
         m.append((resp[0]["Rank"], resp[0]["TaxId"], resp[0]["ScientificName"]))
         self[key] = m
         
@@ -311,7 +316,7 @@ class TaxIdToSpeciesNameMap(NcbiMap):
     def readResponse(self, resp, key):
         if len(resp) < 1:
             raise KeyError("'%s' is not in the dictionary. "
-                           "NCBI response was empty.")
+                           "NCBI response was empty." % key)
         if len(resp) > 1:
             self[key] = None
             raise ValueError("Problem with key: %s. "
