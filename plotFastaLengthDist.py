@@ -18,7 +18,8 @@ def getStats(stream, inFormat, log=None):
     return stats
 
 
-def plotLengthDist(stat, outFile, marks=None, logY=False, imgFormat="pdf"):
+def plotLengthDist(stat, outFile, marks=None, logY=False, imgFormat="pdf", 
+                   title=None):
     """Generates a temporary R script and calls R, pipes in the data generate 
     plots this way"""
     # template for R script
@@ -33,7 +34,7 @@ p1 = ggplot(data, aes(x=len))%(mark)s + geom_histogram(binwidth=1, color="black"
 p2 = ggplot(data, aes(x=len))%(mark)s + geom_density()
 
 %(img_form)s("%(out)s")
-p = arrangeGrob(p1, p2, nrow=2)
+p = arrangeGrob(p1, p2, nrow=2, main="%(title)s")
 print(p)
 dev.off()
 """
@@ -48,6 +49,10 @@ dev.off()
         opt["log"] = "+ scale_y_log10(breaks = trans_breaks(\"log10\", function(x) 10^x), labels = trans_format(\"log10\", math_format(10^.x)))"
     else:
         opt["log"] = ""
+    if title is None:
+        opt["title"] = "Length Distribution"
+    else:
+        opt["title"] = title
     with open("r_plot.tmp", "w") as rScript:
         rScript.write(r_tmpl % opt)
     #start R process with the script
@@ -91,6 +96,10 @@ if __name__ == "__main__":
                       default="pdf", help="set plot format to FORMAT [default: pdf]",
                       choices=["pdf","png","jpeg", "bmp", "postscript"],
                       metavar="FORMAT")
+    parser.add_option("-i", "--title",
+                      action="store", type="string", dest="title",
+                      default=None, help="add title TITLE to plot",
+                      metavar="TITLE")
 
     (options, args) = parser.parse_args()
     
@@ -114,7 +123,7 @@ if __name__ == "__main__":
                            )
     try:
         plotLengthDist(stats, pdfPath, options.marks, options.ylog, 
-                       options.imgForm)
+                       options.imgForm, options.title)
     except OSError as e:
         if e.errno == os.errno.ENOENT:
             sys.stderr.write("Problem starting R to do the plotting\n")
