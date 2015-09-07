@@ -65,7 +65,10 @@ class SqliteCache(object):
         return zip(self.keys(), self.values())
 
 class SqliteListCache(object):
-    
+    """NOTE: If used in MulticachedDict, take care that the cache is updated,
+    if an item is added to the list (eg. with append) it will not automatically
+    be added to the cache.
+    """
     def __init__(self, filePath=None, indict=None, table="key2value", 
                  key="key", value="value"):
         if filePath is None:
@@ -193,8 +196,8 @@ class MultiCachedDict(object):
         
 #    def __contains__(self, key):
 #        raise NotImplementedError()
-        
-        
+
+
 class PersistantDict(MultiCachedDict):
     def __init__(self, indict=None, dbpath=None):
         dbdict = SqliteCache(dbpath, indict)
