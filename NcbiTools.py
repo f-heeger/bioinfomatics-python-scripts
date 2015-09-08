@@ -59,6 +59,13 @@ class NcbiMap(dict):
             for tries in range(self.retry+1):
                 try:
                     handle = self.requestFunction(key)
+                    response = Entrez.read(handle, validate=False)
+                except ValidationError as e:
+                    sys.stderr.write("Problem while parsing response for key '%s'. "
+                                     "This might be due to outdatetd DTD files in "
+                                     "Biopython. Try updating from http://www.ncbi."
+                                     "nlm.nih.gov/data_specs/dtd/" % key)
+                    raise e
                 except Exception as e:
                     if tries == self.retry:
                         raise KeyError("Problem with key: '%s'. "
@@ -72,17 +79,7 @@ class NcbiMap(dict):
                 else:
                     #if no exception occured no retry is needed
                     break
-            try:
-                response = Entrez.read(handle, validate=False)
-                self.readResponse(response, key)
-            except ValidationError as e:
-                sys.stderr.write("Problem while parsing response for key '%s'. "
-                                 "This might be due to outdatetd DTD files in "
-                                 "Biopython. Try updating from http://www.ncbi."
-                                 "nlm.nih.gov/data_specs/dtd/" % key)
-                raise e
-            finally:
-                handle.close()
+            self.readResponse(response, key)
         return dict.__getitem__(self, key)
             
     def requestFunction(key):
