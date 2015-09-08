@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 
 import sys, re
+from warnings import warn
 
 try:
     import gzip
@@ -33,7 +34,7 @@ def filterLengthIdList(inStream, outPath, format, minLength=None,
             idRes = [re.compile(x) for x in idList]
         else:
             #use a dict to have random acces in O(1)
-            idDict = dict(zip(idList, [None]*len(idList)))
+            idDict = dict(zip(idList, [0]*len(idList)))
     try:
         out = open(outPath, "w")
     except TypeError: 
@@ -55,16 +56,36 @@ def filterLengthIdList(inStream, outPath, format, minLength=None,
             elif not idList is None:
                 if regex:
                     if all([r.match(rec.id) is None for r in idRes]):
-                        #id the record id does not match any of the given REs
+                        #if the record id does not match any of the given REs
                         # i.e. all results of matching are None
                         write = False
-                elif rec.id not in idDict:
-                    #if a ID list was given skip the record if it is not in it
-                    write = False
+                else:
+                    if rec.id not in idDict:
+                        #if a ID list was given skip the record if it is not in it
+                        write = False
+                    else:
+                        idDict[rec.id] += 1
             if (not neg and write) or (neg and not write) :
                 out.write(rec.format(format))
                 n+=1
+        notFound = 0
+        multiFound = 0
+        if not idList is None and not regex:
+            for recId, found in idDict.items():
+                if found == 0:
+                    warn("ID '%s' was not found in the file." % recId)
+                    notFound +=1
+                if found > 1:
+                    warn("ID '%s' encountered %i times in the file" \
+                         % (recId, found))
+                    multiFound +=1
         if log:
+            if notFound > 0:
+                log.write("Of the %i given IDs %i were NOT found in the file\n"
+                          % (len(idDict), notFound))
+            if multiFound > 0:
+                log.write("Of the %i given IDs %i were found MULTIPLE TIMES"
+                          " in the file\n" % (len(idDict), multiFound))
             log.write("\n%i out of %i sequences remained after filtering.\n"
                       % (n,l))
     finally:
