@@ -9,9 +9,8 @@ from OttTools import *
 
 class MapTest(object):
     def runTest(self):
-        print(self.__class__)
         for key, value in self.testSet:
-            self.assertEqual(self.map[key], value, "Problem with key: "+key)
+            self.assertEqual(self.map[key], value)
 
 class Nam2IdTest(MapTest, unittest.TestCase):
     def setUp(self):
@@ -25,12 +24,10 @@ class Nam2IdTest(MapTest, unittest.TestCase):
 class Nam2IdContextTest(unittest.TestCase):
     
     def test_valid(self):
-        print(self.__class__)
         self.map = OttName2IdMap(context="Insects")
         self.assertSetEqual(self.map["Bacteria"],  set([5021155]))
 
     def test_invalid(self):
-        print(self.__class__)
         with self.assertRaises(ValueError):
             self.map = OttName2IdMap(context="INVALID")
 
@@ -39,11 +36,20 @@ class Nam2IdContextTest(unittest.TestCase):
 class Id2otherTaxonomyTest(MapTest, unittest.TestCase):
     def setUp(self):
         self.map = OttId2otherTaxonomyMap()
-        self.testSet = [(686240, {"ncbi": 253305, "if": 7692, 
-                                 "gbif": 2614823, "irmng": 1373703}),
-                        (10732, {"ncbi": 29073, "gbif": 2433451, 
-                                 "irmng": 11061491})
+        self.testSet = [(686240, {u"ncbi": u"253305", u"if": u"7692", 
+                                 u"gbif": u"2614823", u"irmng": u"1373703"}),
+                        (10732, {u"ncbi": u"29073", u"gbif": u"2433451", 
+                                 u"irmng": u"11061491"})
                        ]
+
+class OttId2NcbiTaxIdTest(MapTest, unittest.TestCase):
+    def setUp(self):
+        self.map = OttId2NcbiTaxIdMap()
+        self.testSet = [(686240, u"253305"),
+                        (10732, u"29073"),
+                       ]
+
+#TODO test CachedOttId2NcbiTaxIdMap
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,6 +1,8 @@
-from pyopentree import tnrs_match_names, tnrs_contexts, gol_node_info
+import gzip, urllib2
 
-from MultiCachedDict import MultiCachedDict, SqliteCache, NotWritableError
+from pyopentree import OpenTreeService
+
+from MultiCachedDict import MultiCachedDict, SqliteCache, SqliteListCache, NotWritableError
 
 class OttName2IdMap(dict):
     """Dictionary class to map names to OTT IDs
@@ -10,7 +12,10 @@ class OttName2IdMap(dict):
     certain taxonomic subtree (e.g. Fungi). 
     Retieve a list of valid contexts via the getContexts method
     """
-    def __init__(self, indict=None, context=None):
+    def __init__(self, indict=None, context=None, url=None):
+        if url is None:
+            url ="http://api.opentreeoflife.org/v2"
+        self.ottApi = OpenTreeService(base_url=url)
         self.context = context
         if indict is None:
             dict.__init__(self)
@@ -29,13 +34,12 @@ class OttName2IdMap(dict):
         
         Returns a set of ottIds.
         """
-        response = tnrs_match_names([name], 
-                                    context_name=self.context, 
-                                    do_approximate_matching=False)
+        response = self.ottApi.tnrs_match_names([name], 
+                                                context_name=self.context, 
+                                                do_approximate_matching=False)
         if len(response["results"]) == 0:
             raise KeyError("No OTT entry found for name %s" % name)
         assert len(response["results"]) == 1
-#        assert len(response["results"][0]["matches"]) == 1
         matches = response["results"][0]["matches"]
         if len(matches)==1:
             return set([matches[0]["ot:ottId"]])
@@ -43,12 +47,12 @@ class OttName2IdMap(dict):
             return set([m["ot:ottId"] for m in matches if not m["is_synonym"]])
         return set([m["ot:ottId"] for m in matches])
 
-    @classmethod
     def getContexts(self):
         """Get a list of a all valid contexts for open tree name search
         
         """
-        return [element for l in tnrs_contexts().values() for element in l]
+        return [element for l in self.ottApi.tnrs_contexts().values() 
+                        for element in l]
 
     @property
     def context(self):
@@ -68,7 +72,7 @@ class CachedOttName2IdMap(MultiCachedDict):
     def __init__(self, dbpath, context=None, tablename="ottName2Id", 
                  keyname="name", valuename="ottId"):
         
-        dbMap = SqliteCache(dbpath, table=tablename, key=keyname, 
+        dbMap = SqliteListCache(dbpath, table=tablename, key=keyname, 
                             value=valuename)
         ottMap = OttName2IdMap(context=context)
         
@@ -81,6 +85,15 @@ class OttId2otherTaxonomyMap(dict):
     databases are: ncbi, if, gbif and irmng
     """
     
+    def __init__(self, indict=None, url=None):
+        if url is None:
+            url ="http://api.opentreeoflife.org/v2"
+        self.ottApi = OpenTreeService(base_url=url)
+        if indict is None:
+            dict.__init__(self)
+        else:
+            dict.__init__(self, indict)
+    
     def __getitem__(self, name):
         try:
             return dict.__getitem__(self, name)
@@ -92,8 +105,7 @@ class OttId2otherTaxonomyMap(dict):
         """Call the web service to get the source taxonomy info for a ottId.
         
         """
-        import pdb; pdb.set_trace()
-        response = gol_node_info(ott_id=ottId)
+        response = self.ottApi.gol_node_info(ott_id=ottId)
         return dict([entry.split(":") for entry in \
                      response["tax_source"].split(",")])
 
@@ -102,6 +114,14 @@ class OttId2NcbiTaxIdMap(dict):
     
     Raises KeyError if OTT does not have a Ncbi source entry for this node.
     """
+    def __init__(self, indict=None, url=None):
+        if url is None:
+            url ="http://api.opentreeoflife.org/v2"
+        self.ottApi = OpenTreeService(base_url=url)
+        if indict is None:
+            dict.__init__(self)
+        else:
+            dict.__init__(self, indict)
     
     def __getitem__(self, name):
         try:
@@ -114,7 +134,10 @@ class OttId2NcbiTaxIdMap(dict):
         """Call the web service to get the source taxonomy info for a ottId.
         
         """
-        response = pyopentree.gol_node_info(ott_id=ottId)
+        try:
+            response = self.ottApi.gol_node_info(ott_id=ottId)
+        except urllib2.HTTPError:
+            raise KeyError("Error when searching %s at OTT" % ottId)
         taxonomies = dict([entry.split(":") for entry in \
                           response["tax_source"].split(",")])
         try:
@@ -136,28 +159,34 @@ class CachedOttId2NcbiTaxIdMap(MultiCachedDict):
         
         MultiCachedDict.__init__(self, None, [dbMap, ottMap])
         
-    def initWithFlatFile(filepath, gzip=False):
+    def initWithFlatFile(self, filepath, useGzip=False):
         """
         Initialize the database cache with the content of a ott flat file.
         
         """
         
-        if not gzip:
+        if not useGzip:
             tOpen = open
         else:
             tOpen = gzip.open
         
         mapDict = {}
-        for line in tOpen(filepath):
-            arr = line.strip().split("\t|\t")
-            if not arr[0] or not arr[4]:
-                continue
-            source = dict([entry.split(":") for entry in source.split(",")])
-            try:
-                mapDict[arr[0]] = source["ncbi"]
-            except KeyError:
-                pass
-        self.cacheList[0] = SqliteCache(filePath=self.cacheList[0].filepath, 
+        with tOpen(filepath) as flatfile:
+            flatfile.next()
+            #skip header
+            for line in flatfile:
+                arr = line.strip().split("\t|\t")
+                if not arr[0] or not arr[4]:
+                    continue
+                try:
+                    source = dict([entry.split(":") for entry in arr[4].split(",")])
+                except Exception as e:
+                    import pdb; pdb.set_trace()
+                try:
+                    mapDict[arr[0]] = source["ncbi"]
+                except KeyError:
+                    pass
+        self.cacheList[0] = SqliteCache(filePath=self.cacheList[0].filePath, 
                                         indict=mapDict,
                                         **self.cacheList[0].conf)
 
