@@ -21,7 +21,7 @@ Normally write human readable output. With the -t option a tabular format of the
 
 >Options:  
 >  -h, --help            show this help message and exit  
->  -q, --quiet           do not print status messages to the screen  
+>  -q, --quite           do not print status messages to the screen  
 >  -u, --fastq           input file is fastq  
 >  -z, --gzip            input file is gzipped  
 >  -l X, --min-length=X  write only sequence with lengths at least X  
@@ -91,7 +91,7 @@ Write all sequences that have less than a certain number of Ns to a different fi
 >
 >Options:  
 >  -h, --help            show this help message and exit  
->  -q, --quiet           do not print status messages to the screen  
+>  -q, --quite           do not print status messages to the screen  
 >  -o X, --output-folder=X  
 >                        write results to folder X [default: ./spatialQual]  
 >  -z, --gzip            input file is gzipped  
@@ -112,7 +112,7 @@ Additional options allow to also plot N-count per read (`-n`), produce detail pl
 >  
 >Options:  
 >  -h, --help           show this help message and exit  
->  -q, --quiet          do not print status messages to the screen  
+>  -q, --quite          do not print status messages to the screen  
 >  -a, --fasta          input file(s) is/are fasta  
 >  -m X, --mapped1=X    write mapped reads from read 1 to this files  
 >  -n X, --mapped2=X    write mapped reads from read 2 to this files  
