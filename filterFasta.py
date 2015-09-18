@@ -130,7 +130,7 @@ if __name__ == "__main__":
 
     parser = OptionParser(usage)
     
-    parser.add_option("-q", "--quite",
+    parser.add_option("-q", "--quiet",
                        action="store_true", dest="quiet", default=False, 
                        help="do not print status messages to the screen",)
     parser.add_option("-u", "--fastq",

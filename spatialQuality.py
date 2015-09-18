@@ -133,7 +133,7 @@ if __name__ == "__main__":
     epi = "Plot properties of reads according to position on the flow cell"
     parser = OptionParser(usage, epilog=epi)
     
-    parser.add_option("-q", "--quite",
+    parser.add_option("-q", "--quiet",
                       action="store_true", dest="quiet", default=False, 
                       help="do not print status messages to the screen",)
     parser.add_option("-o", "--output-folder",
