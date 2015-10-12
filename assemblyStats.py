@@ -9,7 +9,8 @@ from Bio.SeqIO import parse
 
 def assemblyStats(contLenTable):
     """Compute assembly stats from a table of contig IDs and length"""
-    sTable = sorted(contLenTable, cmp=lambda x,y: cmp(x[1],y[1]))
+    sTable = sorted(contLenTable, cmp=lambda x,y: cmp(x[1],y[1]), reverse=True)
+#    import pdb; pdb.set_trace()
     lenSum = sum([c[1] for c in contLenTable])
     i=0
     iSum=0
@@ -58,9 +59,9 @@ if __name__ == "__main__":
         print("%s\t%i\t%i\t%i\t%i\t%i\t%i" 
               % (args[0], len(tab), l50, n50, lenSum, maxLen, minLen))
     else:
-        print("Number of contigs:\t%i" % len(tab))
-        print("L50 (N50 length):\t%i" % l50)
-        print("N50 (N50 rank):\t%i" % n50)
-        print("Total length of all contigs:\t%i" % lenSum)
-        print("Longest contig:\t%i" % maxLen)
-        print("Shortest contig:\t%i" % minLen)
+        print("Number of contigs:           %15i" % len(tab))
+        print("N50 length (normally used):  %15i bp" % l50)
+        print("N50 rank (rarely used):      %15i" % n50)
+        print("Total length of all contigs: %15i bp" % lenSum)
+        print("Longest contig:              %15i bp" % maxLen)
+        print("Shortest contig:             %15i bp" % minLen)
