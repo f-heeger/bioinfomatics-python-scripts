@@ -25,6 +25,7 @@ def plotLengthDist(stat, outFile, marks=None, logY=False, imgFormat="pdf",
     # template for R script
     r_tmpl = """library(ggplot2)
 library(scales)
+library(grid)
 library(gridExtra)
 
 data = read.table(file("stdin"), header=F)
@@ -34,8 +35,7 @@ p1 = ggplot(data, aes(x=len))%(mark)s + geom_histogram(binwidth=1, color="black"
 p2 = ggplot(data, aes(x=len))%(mark)s + geom_density()
 
 %(img_form)s("%(out)s")
-p = arrangeGrob(p1, p2, nrow=2, main="%(title)s")
-print(p)
+grid.arrange(p1, p2, top=textGrob("%(title)s", gp=gpar(cex=2)))
 dev.off()
 """
 
