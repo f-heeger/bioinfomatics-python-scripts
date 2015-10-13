@@ -126,6 +126,29 @@ Additional options allow to also plot N-count per read (`-n`), produce detail pl
 
 From a set of single end or paired end reads in a fasta or fastq file (or two for paired end) remove all reads that were mapped in a mapping result given as a sam file or a blast tabular file (`-b`). Reads files can be gziped (`-z`) as well as the mapping file (`-y`). For blast results a minimal e-value can be given for a match to be considered as a "mapping" (`-t`).
 
+### trim
+
+>Usage: trim.py [options] input1.fastq [output1.fasta input2.fastq output2.fasta]  
+>  
+>Options:  
+>  -h, --help            show this help message and exit  
+>  -q, --quite           do not print status messages to the screen  
+>  -a, --fasta           set output format to fasta [default: fastq]  
+>  -t X, --min-quality=X  
+>                        quality threshold  
+>  -l X, --min-length=X  minimal length for reads after trimming [default: 0]  
+>  -p X, --max-error-prob=X  
+>                        maximal over all error probability in one read  
+>  -c X, --const=X       remove X bases from the end of the read  
+>  -b X, --begin-const=X  
+>                        remove X bases from the begining of the read  
+>  -r X, --crop=X        cut all reads to length X; if combined with -l Y reads  
+>                        shorter than Y will be disgarded and reads shorter  
+>                        than X but longer than Y will be padded with Ns to have  
+>                        length X  
+
+Trim (paired end) reads in a variety of ways. Does not support gzipped input, yet.
+
 ## Modules
 
 ### NcbiTools

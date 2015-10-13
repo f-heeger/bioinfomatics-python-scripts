@@ -219,7 +219,7 @@ if __name__ == "__main__":
                        default=0, 
                        help="cut all reads to length X; if combined with -l Y "
                             "reads shorter than Y will be disgarded and reads "
-                            "shorter than X but longer than Y will be padded"
+                            "shorter than X but longer than Y will be padded "
                             "with Ns to have length X",
                        metavar="X")
                        
