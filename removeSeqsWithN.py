@@ -124,5 +124,5 @@ if __name__ == "__main__":
         inStream2.close()
         outStream2.close()
 
-    sys.stderr.write("Done. Removed %i of %i sequneces\n" % (total, removed))
+    sys.stderr.write("Done. Removed %i of %i sequneces\n" % (removed, total))
 
