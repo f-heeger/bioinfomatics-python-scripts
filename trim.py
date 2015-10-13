@@ -127,13 +127,13 @@ def trimByConstant(inPath1, outPath1, inPath2=None, outPath2=None, cEnd=20,
     If cBegin is given it will be used as the number of reads to cut from the 
     beginning of a read.
     """
-    files = [parse(open(inPath1), "fastq")]
+    files = [parse(open(inPath1), inFormat)]
     if outPath1 is None:
         outFiles = [sys.stdout]
     else:
         outFiles = [open(outPath1, "w")]
     if inPath2:
-        files.append(parse(open(path2), "fastq"))
+        files.append(parse(open(path2), inFormat))
         outFiles.append(open(outPath2, "w")) 
     return _trimNStreams(_trimReadByConstant, files, outFiles, outFormat, 
                          stats, cEnd, cBegin, minLen)
@@ -147,19 +147,19 @@ def _trimReadByConstant(r, stats, cEnd, cBegin, minLen):
         return r[cBegin:cEnd]
     
 def trimToConstant(inPath1, outPath1, inPath2=None, outPath2=None, length=75, 
-                   minLen=75, outFormat="fasta", inFormat="fastq", stats=None):
+                   minLen=0, outFormat="fasta", inFormat="fastq", stats=None):
     """Trim each read in a fastq file to a certain length.
     
     Reads that are shorter than the desired length but at least min. length will
-    be papped by Ns. Reads shorter than the min. length will be discareded.
+    be padded by Ns. Reads shorter than the min. length will be discareded.
     """
-    files = [parse(open(inPath1), "fastq")]
+    files = [parse(open(inPath1), inFormat)]
     if outPath1 is None:
         outFiles = [sys.stdout]
     else:
         outFiles = [open(outPath1, "w")]
     if inPath2:
-        files.append(parse(open(path2), "fastq"))
+        files.append(parse(open(path2), inFormat))
         outFiles.append(open(outPath2, "w")) 
     return _trimNStreams(_trimReadToConstant, files, outFiles, outFormat, 
                          stats, length, minLen)
@@ -168,7 +168,7 @@ def _trimReadToConstant(r, stats, length, minLen):
     if len(r) < minLen:
         return None
     else:
-        if len(r) < length:
+        if len(r) < length and minLen > 0:
             if not stats is None:
                 stats.append((0, len(r)-length))
             return r[:length] + "N"*(length - len(r))
@@ -187,9 +187,9 @@ if __name__ == "__main__":
     parser.add_option("-q", "--quite",
                        action="store_true", dest="quiet", default=False, 
                        help="do not print status messages to the screen",)
-    parser.add_option("-u", "--fastq",
-                       action="store_true", dest="fastq", default=False, 
-                       help="set output format to fastq [default: fasta]",)
+    parser.add_option("-a", "--fasta",
+                       action="store_true", dest="fasta", default=False, 
+                       help="set output format to fasta [default: fastq]",)
     parser.add_option("-t", "--min-quality",
                        action="store", type="int", dest="minQuality",
                        default=0, help="quality threshold",
@@ -217,7 +217,10 @@ if __name__ == "__main__":
     parser.add_option("-r", "--crop",
                        action="store", type="int", dest="crop",
                        default=0, 
-                       help="cut all reads to length X",
+                       help="cut all reads to length X; if combined with -l Y "
+                            "reads shorter than Y will be disgarded and reads "
+                            "shorter than X but longer than Y will be padded"
+                            "with Ns to have length X",
                        metavar="X")
                        
     (options, args) = parser.parse_args()
@@ -245,10 +248,12 @@ if __name__ == "__main__":
     if len(args) > 4 and log:
         log.write("Additional arguments will be ignored!\n")
             
-    format = "fasta"
+    format = "fastq"
     
-    if options.fastq:
-        format = "fastq"
+    if options.fasta:
+        format = "fasta"
+    if options.fasta and (options.maxProb or options.minQuality):
+        parser.error("This trimming mode requires fastq input.")
     
     stat = []
     d = o = None
@@ -259,13 +264,19 @@ if __name__ == "__main__":
                       )
         d, o = trimByConstant(inPath1, outPath1, inPath2, outPath2, 
                               cEnd=options.const, cBegin=options.beginConst, 
-                              outFormat="fastq", inFormat="fastq")
+                              outFormat=format, inFormat=format)
         
     elif not options.crop is None:
         if log:
             log.write("Cropping all reads to %i.\n" % (options.crop))
+            if options.minLength>0:
+                log.write("Reads shorter than %(min)i will be disgarded. "
+                          "Reads longer than %(min)i but shorter than %(len)i"
+                          " will be padded with Ns to have length %(len)i" 
+                          % {"min": options.minLength, "len": options.crop})
         d, o = trimToConstant(inPath1, outPath1, inPath2, outPath2, 
-                              length=options.crop, outFormat=format, stats=stat)
+                              length=options.crop, outFormat=format, stats=stat,
+                              minLen=options.minLength, inFormat=format)
     elif not options.maxProb is None:
         if log:
             log.write("Quality trimming to overall error probability of %f. "
@@ -285,6 +296,9 @@ if __name__ == "__main__":
                              minLen=options.minLength, 
                              bothEnds=True, outFormat=format, stats=stat)
     if log:
+        if o==0:
+            log.write("It seems there was a problem: No sequences processed.\n")
+            sys.exit(1)
         log.write("Removed %.2f%% (%i) of %i pairs\n" % (float(d)/o*100, d,o))
         
     if stat:
