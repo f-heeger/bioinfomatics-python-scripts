@@ -13,7 +13,7 @@ class EolName2IdMap(dict):
         """Initalize with config: return exact results and filter by nothing"""
         self.config = {"exact": "true", "filter_by_taxon_concept_id": "false",
                        "filter_by_hierarchy_entry_id": "false",
-                       "filter_by_string": "false"}
+                       "filter_by_string": ""}
         dict.__init__(self, indict)
         
     @property
