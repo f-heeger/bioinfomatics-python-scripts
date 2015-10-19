@@ -174,6 +174,8 @@ Map the GI number of a NCBI nucleotide record to the according NCBI taxonomy ID
 Map the GI number of a NCBI nucleotide record to scientific name of the according species
 #### CachedNuclId2TaxIdMap
 Map the GI number of a NCBI nucleotide record to the according NCBI taxonomy ID. Use a sqlite3 database as persistent cache to reduce requests to NCBI 
+#### ProtId2ProtNameMap
+Map the GI number of a NCBI protein record to the name of the protein (NCBI calls this the `definition`)
 #### NcbiTaxonomyTree
 A class representing the tree given by the NCBI taxonomy database. If a cache path is given to the constructor a database at this path will be used as persistent cache. The object can be initialized by the function with the same name. It takes a node.dmp file of the NCBI taxonomy file dump as input. This option is only available if a cache is used (otherwise there is no place to store the initialized data). Missing data will be loaded directly from the NCBI data base via SOAP request, but only once it is needed.  
 The object can be queried for information on the tree with NCBI taxonomy IDs representing a node. The function include: parent of a node, full path to the root, lowest common ancestor of two or more nodes and a variant of the lowest common ancestor that for a set of nodes returns the lowest node for which all input nodes are either ancestors or descendants of the output node (called lowest common node (LCN) here).

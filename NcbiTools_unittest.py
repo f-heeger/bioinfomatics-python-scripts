@@ -92,6 +92,15 @@ class Nucl2taxIdTest(mapTest, unittest.TestCase):
                        ]
         self.map = NuclId2TaxIdMap(email)
 
+class Prot2nameTest(mapTest, unittest.TestCase):
+    def setUp(self):
+        self.testSet = [(684157356, "hypothetical protein HMPREF1120_00314 [Exophiala dermatitidis NIH/UT8656]"),
+                        (918400562, "hemoglobin [Homo sapiens]"),
+                        (190663721, "laccase, partial [Clavariopsis aquatica]"),
+                        (284794136, "Chain F, Crystal Structure Of Zaire Ebola Vp35 Interferon Inhibitory Domain K339a Mutant")
+                       ]
+        self.map = ProtId2ProtNameMap(email)
+
 class TaxParentTest(mapTest, unittest.TestCase):
     def setUp(self):
         self.testSet = [(666681, "1055487"),

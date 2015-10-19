@@ -342,6 +342,25 @@ class NuclId2SpeciesNameMap(NcbiMap):
             raise ValueError("Source of sequence is given as 'unknown' in NCBI")
         self[key] = organism
         
+class ProtId2ProtNameMap(NcbiMap):
+    """Map NCBI protein GIs to the title of the protein.
+    
+    """
+    
+    def requestFunction(self, key):
+        return Entrez.efetch(db="protein", id=str(key), retmode="xml")
+    
+    def readResponse(self, resp, key):
+        if len(resp) < 1:
+            raise KeyError("'%s' is not in the dictionary. "
+                           "NCBI response did not contain taxonomy information.")
+        if len(resp) > 1:
+            self[key] = None
+            raise ValueError("Problem with key: %s. "
+                             "It got multiple answers." % key)
+        name = resp[0]["GBSeq_definition"]
+        self[key] = name
+        
 
 class CachedNuclId2TaxIdMap(MultiCachedDict):
     def __init__(self, dbPath, email):
