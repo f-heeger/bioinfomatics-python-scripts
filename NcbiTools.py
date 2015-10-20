@@ -365,6 +365,25 @@ class ProtId2ProtNameMap(NcbiMap):
         self[key] = name
         
 
+#The following Cached* classes are versions of the before defined maps that are
+# multi-level-cached (in RAM and in a SQLite DB) the actual map class is only
+# used if the mapping can not be found in the caches
+
+class CachedProtId2ProtNameMap(MultiCachedDict):
+    def __init__(self, dbPath, email):
+        ncbi = ProtId2ProtNameMap(email, useCache=False)
+        database = SqliteCache(filePath=dbPath, indict=None, table="gi2name", 
+                               key="gi", value="name")
+        MultiCachedDict.__init__(self, None, [database, ncbi])
+        
+    def initialize(self, csvPath, delimiter=",", quotechar="\""):
+        """Initialize the DB cache with a csv file.
+        
+        """
+        with open(csvPath) as csvFile:
+            for row in csv.reader(csvFile, delimiter, quotechar):
+                self[row[0]] = row[1]
+
 class CachedNuclId2TaxIdMap(MultiCachedDict):
     def __init__(self, dbPath, email):
         ncbi = NuclId2TaxIdMap(email, useCache=False)
