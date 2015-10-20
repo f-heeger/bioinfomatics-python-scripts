@@ -89,15 +89,18 @@ class NcbiMap(dict):
     def load(self):
         if not self.useCache:
             raise CacheNotUsedError()
-        for row in csv.reader(open(self.cachePath, "rb")):
-            self[row[0]] = row[1]
+        with open(self.cachePath, "rb") as inFile:
+            for row in csv.reader(inFile, delimiter=",", quotechar="\""):
+                self[row[0]] = row[1]
     
     def save(self):
         if not self.useCache:
             raise CacheNotUsedError()
         with open(self.cachePath, "wb") as out:
+            writer = csv.writer(out, delimiter=",", quotechar="\"", 
+                                quoting=csv.QUOTE_MINIMAL)
             for key, value in self.items():
-                out.write("%s,%s\n" % (str(key), str(value)))
+                writer.writerow([str(key), str(value)])
 
     def __del__(self):
         if self.useCache:
