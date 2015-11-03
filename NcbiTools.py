@@ -381,7 +381,8 @@ class CachedProtId2ProtNameMap(MultiCachedDict):
         
         """
         with open(csvPath) as csvFile:
-            for row in csv.reader(csvFile, delimiter, quotechar):
+            for row in csv.reader(csvFile, delimiter=delimiter, 
+                                  quotechar=quotechar):
                 self[row[0]] = row[1]
 
 class CachedNuclId2TaxIdMap(MultiCachedDict):
