@@ -26,7 +26,7 @@ def getData(stream, inFormat, ranks, seq2sepc=None, log=None):
     """Extract sequence ID and length of the sequecene from fast(a|q)"""
     if seq2spec is None:
         GI2TAX_DBPATH = "/home/heeger/data/dbs/gi_taxid_nucl.db"
-        gi2spec = CachedNuclId2TaxIdMap(EMAIL, GI2TAX_DBPATH)
+        gi2spec = CachedNuclId2TaxIdMap(GI2TAX_DBPATH, EMAIL)
     mapping = {}
     spec2rank = {}
     for rank in ranks:
