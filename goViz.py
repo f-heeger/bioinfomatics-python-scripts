@@ -3,10 +3,9 @@ import urllib2
 from itertools import chain
 from collections import deque
 import subprocess
+from optparse import OptionParser
 
 from goOboParser import _parseGOOBO
-
-localOboFile="/home/heeger/data/go/go.obo"
 
 
 class GoNode(object):
@@ -80,7 +79,7 @@ def readEnrichmentFile(path, goTree, sigLvl=0.05):
             sig.append(gId)
     return sig
 
-def createDot(goTree, sig):
+def createDot(goTree, sig, log=None):
     plotGo = {}
     for go in sig:
         plotGo[go] = None
@@ -93,7 +92,8 @@ def createDot(goTree, sig):
                     if parent.gId not in plotGo:
                         toDo.append(parent.gId)
             except KeyError:
-                sys.stderr.write("root node: %s %s\n" % (tGo, goTree[tGo].name))
+                if log:
+                    log.write("root node: %s %s\n" % (tGo, goTree[tGo].name))
                 pass # reached tree root
             plotGo[tGo] = None
 
@@ -125,20 +125,52 @@ def createDot(goTree, sig):
     dot.append("}")
     return dot
 
-goTree = readGoObo(localOboFile)
-sig = readEnrichmentFile(sys.argv[1], goTree)
-dotList = createDot(goTree, sig)
-
-dotCmd = ["dot", "-Tsvg"]
-dotProc = subprocess.Popen(dotCmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-graphSvg, err = dotProc.communicate("\n".join(dotList))
-sys.stderr.write(str(err))
-while dotProc.returncode is None:
-    out, err = dotProc.communicate()
+def runDot(dotCommand, errStream):
+    dotCmd = ["dot", "-Tsvg"]
+    dotProc = subprocess.Popen(dotCmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    graphSvg, err = dotProc.communicate(dotCommand)
     sys.stderr.write(str(err))
-    graphSvg.append(out)
-if dotProc.returncode != 0:
-    raise(subprocess.CalledProcessError("Exitcode of dot not 0"))
+    while dotProc.returncode is None:
+        out, err = dotProc.communicate()
+        sys.stderr.write(str(err))
+        graphSvg.append(out)
+    if dotProc.returncode != 0:
+        raise(subprocess.CalledProcessError("Exitcode of dot not 0"))
+    return graphSvg
 
-print(graphSvg)
+if __name__ == "__main__":
+    usage = "usage: %prog [options] enrichment.tsv"
+    des = "Visualize the induced GO tree from a list of GO enrichment." \
+          "The enrichment list can be the output of the R package GOstats or" \
+          " any tab separateted table with the following columns: column 1:" \
+          " GO ID, column 2: p-value, column 5: number of differentially" \
+          " expressedgenes with this GO term, column 6: total number of genes" \
+          "with this GO term"
+    
+    parser = OptionParser(usage, description=des)
+    
+    parser.add_option("-o", "--out-file",
+                      action="store", type="string", dest="outFilePath",
+                      default=None, help="write output to fiel at OUT/PATH",
+                      metavar="OUT_FILE")
+    parser.add_option("-g", "--go-obo-file",
+                      action="store", type="string", dest="oboFilePath",
+                      default=None, 
+                      help="read GO tree structure from this file",
+                      metavar="OBO_FILE")
+    parser.add_option("-s", "--sig-level",
+                      action="store", type="float", dest="sigLevel",
+                      default=0.05, 
+                      help="threshold for significant p-values [default: 0.05]",
+                      metavar="X")
+    (options, args) = parser.parse_args()
+
+    goTree = readGoObo(options.oboFilePath)
+    sig = readEnrichmentFile(args[0], goTree, options.sigLevel)
+    dotList = createDot(goTree, sig)
+    graphSvg = runDot("\n".join(dotList), sys.stderr)
+    if options.outFilePath:
+        open(options.outFilePath, "w").write(graphSvg)
+    else:
+        print(graphSvg)
 
