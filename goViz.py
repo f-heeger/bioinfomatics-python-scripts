@@ -1,5 +1,9 @@
 import sys
-import urllib2
+try:
+    from urllib2 import urlopen
+except ImportError:
+    #this might be due to beeing python3
+    from urllib.request import urlopen
 from itertools import chain
 from collections import deque
 import subprocess
@@ -40,9 +44,9 @@ class GoNode(object):
 def readGoObo(localOboPath=None):
     goTree = {}
     if localOboPath is None:
-        oboFile = urllib2.urlopen("http://purl.obolibrary.org/obo/go.obo")
+        oboFile = urlopen("http://purl.obolibrary.org/obo/go.obo")
     else:
-        oboFile = open(localOboFile)
+        oboFile = open(localOboPath)
 
     terms = list(_parseGOOBO(oboFile))
 
@@ -65,11 +69,10 @@ def readGoObo(localOboPath=None):
     return goTree
 
 
-def readEnrichmentFile(path, goTree, sigLvl=0.05):
+def readEnrichmentFile(inStream, goTree, sigLvl=0.05):
     sig = []
-    enrichmentFile = open(path)
-    next(enrichmentFile) #skip header
-    for line in enrichmentFile:
+    next(inStream) #skip header
+    for line in inStream:
         arr = line.split("\t")
         gId = arr[0]
         goTree[gId].pvalue = float(arr[1])
@@ -127,16 +130,26 @@ def createDot(goTree, sig, log=None):
 
 def runDot(dotCommand, errStream):
     dotCmd = ["dot", "-Tsvg"]
-    dotProc = subprocess.Popen(dotCmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    dotProc = subprocess.Popen(dotCmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                               universal_newlines=True)
     graphSvg, err = dotProc.communicate(dotCommand)
-    sys.stderr.write(str(err))
+    if err:
+        sys.stderr.write(str(err))
     while dotProc.returncode is None:
         out, err = dotProc.communicate()
-        sys.stderr.write(str(err))
+        if err:
+            sys.stderr.write(str(err))
         graphSvg.append(out)
     if dotProc.returncode != 0:
         raise(subprocess.CalledProcessError("Exitcode of dot not 0"))
     return graphSvg
+
+def main(inStream, outStream, oboPath=None, sigLvl=0.05, log=sys.stderr):
+    goTree = readGoObo(oboPath)
+    sig = readEnrichmentFile(inStream, goTree, sigLvl)
+    dotList = createDot(goTree, sig)
+    graphSvg = runDot("\n".join(dotList), log)
+    outStream.write(graphSvg)
 
 if __name__ == "__main__":
     usage = "usage: %prog [options] enrichment.tsv"
@@ -164,13 +177,18 @@ if __name__ == "__main__":
                       help="threshold for significant p-values [default: 0.05]",
                       metavar="X")
     (options, args) = parser.parse_args()
-
-    goTree = readGoObo(options.oboFilePath)
-    sig = readEnrichmentFile(args[0], goTree, options.sigLevel)
-    dotList = createDot(goTree, sig)
-    graphSvg = runDot("\n".join(dotList), sys.stderr)
-    if options.outFilePath:
-        open(options.outFilePath, "w").write(graphSvg)
+    if len(args) > 0:
+        inStream = open(args)
     else:
-        print(graphSvg)
+        sys.stderr.write("Reading from stdin\n")
+        inStream = sys.stdin
+    
+    if options.outFilePath:
+        out=open(options.outFilePath, "w")
+    else:
+        sys.stderr.write("Writing to stdout\n")
+        out=sys.stdout
+        
+    main(inStream, out, options.oboFilePath, options.oboFilePath, 
+         option.sigLevel)
 
