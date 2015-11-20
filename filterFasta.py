@@ -98,6 +98,7 @@ def sampleRandom(inStream, outPath, format, number, log):
         except TypeError:
             out = outPath
         if log:
+            log.write("Sampling %i sequences at random...\n" % number)
             log.write("Counting sequences in file...\n")
         l = 0
         for rec in SeqIO.parse(inStream, format):
