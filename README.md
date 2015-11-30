@@ -210,7 +210,7 @@ Simple parser for Thermonuclear Blast standard output files.
 Generator that will yield one amplicon at a time in the form of a tuple. consisting of: (NCBI GI number, start of amplicon in the data base sequence, end of amplicon in the data base sequence, amplicon sequece)
 
 ### EolTools
-Colelction of tools to query the [Encyclopedia of Life](eol.org)
+Collection of tools to query the [Encyclopedia of Life](eol.org)
 
 #### EolName2IdMap
 Dictionary that maps names to EOL IDs using the `search` EOL web service.
@@ -221,3 +221,18 @@ Note: exact search is switched on by default.
 #### EolInterface
 Loads data for an EOL entry once with the `page` EOL web service.
 Data is kepped in memory and can be querried directly in the `data` member of this class or by specialized functions.
+
+### KeggTools
+Collection of tools to query the [KEGG](http://www.kegg.jp) REST [API](http://www.kegg.jp/kegg/rest/keggapi.html)
+
+#### KeggMap
+Abstract base class to querry KEGG. Do not use directly!
+
+#### NcbiGiToKeggMap
+Maps NCBI protein GIs to KEGG gene IDs via the KEGG REST API. Uses the `convert` operation. Will return a KEGG gene ID (including the three letter organism prefix) or `None` if no mapping was found.
+
+#### KeggGeneToPathwayMap
+Maps KEGG gene IDs to KEGG pathway IDs via the KEGG REST API. Uses the `link` operation. Will return a set of pathway IDs witout the `path:` prefix. Input has to be a KEGG gene ID including the three letter organism prefix.
+
+#### KeggPathwayIdToNameMap
+Maps KEGG pathway IDs (wihtout the `path:` prefix) to their name via the KEGG REST API. 
