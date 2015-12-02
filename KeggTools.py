@@ -1,6 +1,10 @@
 import csv
 import time
-from urllib2 import urlopen
+try:
+    from urllib2 import urlopen
+except ImportError:
+    #this might be due to beeing python3
+    from urllib.request import urlopen
 
 class CacheNotUsedError(Exception):
     """Exception that is raised if the user tries to do cache operations 
