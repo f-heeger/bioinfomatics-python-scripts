@@ -33,5 +33,13 @@ class KeggPathwayIdToNameMapTest(mapTest, unittest.TestCase):
                         ]
         self.map = KeggPathwayIdToNameMap(retry=3)
 
+class KeggReactionIdToEcMapTest(mapTest, unittest.TestCase):
+    def setUp(self):
+        self.testSet = [("R00577", set(["2.3.1.68"])),
+                        ("R04558", set(["2.4.2.-","4.1.3.-"])),
+                        ("R04066", set(["1.14.13.5"])),
+                       ]
+        self.map = KeggReactionIdToEcMap()
+
 if __name__ == '__main__':
     unittest.main()

@@ -57,7 +57,7 @@ class KeggMap(dict):
                 try:
                     self.lastReq = time.time()
                     handle = self.requestFunction(key)
-                    response = handle.read()
+                    response = handle.read().decode("utf-8")
                 except Exception as e:
                     if tries == self.retry:
                         raise KeyError("Problem with key: '%s'. "
@@ -81,7 +81,7 @@ class KeggMap(dict):
         """load csv cache"""
         if not self.useCache:
             raise CacheNotUsedError()
-        with open(self.cachePath, "rb") as inFile:
+        with open(self.cachePath, "r") as inFile:
             for row in csv.reader(inFile, delimiter=",", quotechar="\""):
                 if row[1] == "None":
                     self[row[0]] = None
@@ -92,16 +92,52 @@ class KeggMap(dict):
         """save csv cache"""
         if not self.useCache:
             raise CacheNotUsedError()
-        with open(self.cachePath, "wb") as out:
+        with open(self.cachePath, "w") as out:
             writer = csv.writer(out, delimiter=",", quotechar="\"", 
                                 quoting=csv.QUOTE_MINIMAL)
             for key, value in self.items():
-                writer.writerow([str(key), str(value)])
+                if value is None:
+                    writer.writerow([key, "None"])
+                else:
+                    writer.writerow([key, value])
 
     def __del__(self):
         if self.useCache:
             self.save()
             
+class KeggSetMap(KeggMap):
+    """Kegg map object that can have multiple values for one key.
+    """
+
+    def save(self):
+        """modifed save function to deal with the sets None values"""
+        if not self.useCache:
+            raise CacheNotUsedError()
+        tab = []
+        for key, valueList in self.items():
+            if valueList is None:
+                tab.append([key, "None"])
+            for value in valueList:
+                tab.append([key, value])
+        with open(self.cachePath, "w") as out:
+            writer = csv.writer(out, delimiter=",", quotechar="\"", 
+                                quoting=csv.QUOTE_MINIMAL)
+            for row in tab:
+                writer.writerow(row)
+    
+    def load(self):
+        """modifed load function to deal with the sets and None values"""
+        if not self.useCache:
+            raise CacheNotUsedError()
+        with open(self.cachePath, "r") as csvFile:
+            for row in csv.reader(csvFile):
+                key, value = row
+                if value == "None":
+                    self[key] = None
+                elif key not in self:
+                    self[key] = set([value])
+                else:
+                    self[key].add(value)
             
 class NcbiGiToKeggMap(KeggMap):
     """Maps Ncbi protein GIs to KEGG gene IDs via the Kegg Rest API.
@@ -123,36 +159,15 @@ class NcbiGiToKeggMap(KeggMap):
             gi = giStr.split(":")[1]
             self[key] = keggStr
             
-class KeggGeneToPathwayMap(KeggMap):
+class KeggGeneToPathwayMap(KeggSetMap):
     """Maps KEGG gene IDs to KEGG pathway IDs vis the KEGG Rest API.
     
     The return value is a set of the IDs of all pathways the gene is part of.
-    Pathway IDs are given without the "path" prefix.
+    Pathway IDs are given without the "path" prefix. The key has to be a KEGG
+    gene ID.
     """
     baseUrl = "http://rest.kegg.jp/link/pathway"
-    
-    def save(self):
-        """modifed save function to deal with the sets"""
-        if not self.useCache:
-            raise CacheNotUsedError()
-        tab = []
-        for gene, pathList in self.items():
-            for path in pathList:
-                tab.append([gene, path])
-        with open(self.cachePath, "wb") as out:
-            for row in tab:
-                out.write(",".join([str(field) for field in row])+"\n")
-    
-    def load(self):
-        """modifed load function to deal with the sets"""
-        if not self.useCache:
-            raise CacheNotUsedError()
-        for row in csv.reader(open(self.cachePath, "rb")):
-            gene, path = row
-            if gene not in self:
-                self[gene] = set()
-            self[gene].add(path)
-            
+                
     def requestFunction(self, keggGene):
         return urlopen("%s/%s" % (self.baseUrl, keggGene))
     
@@ -168,6 +183,7 @@ class KeggGeneToPathwayMap(KeggMap):
         
 class KeggPathwayIdToNameMap(KeggMap):
     """Maps KEGG pathway IDs to the pathway name via the KEGG Rest API.
+    
     """ 
     
     baseUrl = "http://rest.kegg.jp/get"
@@ -188,4 +204,32 @@ class KeggPathwayIdToNameMap(KeggMap):
                     pId, name = value.split(None,1)
                     self[key] = name
                     break
-            
+
+class KeggReactionIdToEcMap(KeggSetMap):
+    """Mapp KEGG reaction ID to the involved enzyms EC numbers via the KEGG 
+    Rest API.
+    
+    Returns a set of strings of Enzym Comission (EC) numbers. Key must be a 
+    KEGG reaction ID (R[0-9]{5}) or None if no enzmyes are found.
+    """
+    
+    baseUrl = "http://rest.kegg.jp/get"
+    
+    def requestFunction(self, reactionId):
+        return urlopen("%s/%s" % (self.baseUrl, reactionId))
+        
+    def readResponse(self, resp, key):
+        enzymes = []
+        for line in resp.split("\n"):
+            if line[:6] == "ENZYME":
+                for part in line[6:].strip().split(" "):
+                    e = part.strip()
+                    if len(e) > 0:
+                        enzymes.append(e)
+                break
+        if len(enzymes) == 0:
+            self[key] = None
+        else:
+            self[key] = set(enzymes)
+        
+

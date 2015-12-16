@@ -226,7 +226,10 @@ Data is kepped in memory and can be querried directly in the `data` member of th
 Collection of tools to query the [KEGG](http://www.kegg.jp) REST [API](http://www.kegg.jp/kegg/rest/keggapi.html)
 
 #### KeggMap
-Abstract base class to querry KEGG. Do not use directly!
+Abstract base class to query KEGG. Do not use directly!
+
+#### KeggSetMap
+Like `KeggMap`, but can have multiple values for one key and supports `None` as value.
 
 #### NcbiGiToKeggMap
 Maps NCBI protein GIs to KEGG gene IDs via the KEGG REST API. Uses the `convert` operation. Will return a KEGG gene ID (including the three letter organism prefix) or `None` if no mapping was found.
@@ -236,3 +239,6 @@ Maps KEGG gene IDs to KEGG pathway IDs via the KEGG REST API. Uses the `link` op
 
 #### KeggPathwayIdToNameMap
 Maps KEGG pathway IDs (wihtout the `path:` prefix) to their name via the KEGG REST API. 
+
+#### KeggReactionIdToEcMap
+Maps KEGG reaction ID to the [Enzyme Comission (EC) numbers](http://www.chem.qmul.ac.uk/iubmb/enzyme/) of the involved enzymes. Returns a set of EC numbers as strings or `None` if no information was found. Input must be a KEGG reaction ID (R\[0-9\]{5})
