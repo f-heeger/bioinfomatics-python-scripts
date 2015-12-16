@@ -1,7 +1,9 @@
-import urllib
-import urllib2
+import urllib.request
+import urllib.parse
 import re
 import gzip
+import time
+import sys
 
 #based on Uniprot retrieval example on 
 # http://www.uniprot.org/help/programmatic_access
@@ -99,7 +101,7 @@ class UniprotIdMap(object):
                                    "It raised an error: %s" 
                                    % (key, str(e)))
                 else:
-                    time.sleep(delay)
+                    time.sleep(self.delay)
                     sys.stderr.write("Problem with key: '%s'. "
                                      "It raised an error: %s\n "
                                      "Will try again...\n" % (key, str(e)) )
@@ -124,14 +126,15 @@ class UniprotIdMap(object):
         "query": key
         }
 
-        data = urllib.urlencode(params)
-        request = urllib2.Request(url, data)
+        data = urllib.parse.urlencode(params)
+        request = urllib.request.Request(url, data.encode("ascii"))
         if self.contact:
-            request.add_header('User-Agent', 'Python %s' % self.contact)
-        return urllib2.urlopen(request)
+            request.add_header(b'User-Agent', 
+                               b'Python '+self.contact.encode("ascii"))
+        return urllib.request.urlopen(request)
 
     def readResponse(self, key):
-        lines = self.response.readlines()
+        lines = self.response.read().decode("utf-8").strip().split("\n")
         if len(lines) < 2:
             if self.returnNone:
                 return None
@@ -149,8 +152,9 @@ class UniprotIdMap(object):
 
 
 class UniprotInterface(object):
-
-    """
+    """Interface class to retrieve UniProt entries and parse them. 
+    
+    Has functions to read GO, KEGG ans Cazy information.
     """
     def __init__(self, retry=0, delay=1, contact=None):
         """
@@ -190,91 +194,71 @@ class UniprotInterface(object):
     def requestFunction(self):
         url = "http://www.uniprot.org/uniprot/%s.txt" % self.uid
 
-        request = urllib2.Request(url)
+        request = urllib.request.Request(url)
         if self.contact:
             request.add_header('User-Agent', 'Python %s' % self.contact)
-        return urllib2.urlopen(request)
+        return urllib.request.urlopen(request)
 
     def readCazyInfo(self):
         if self.response is None:
-            raise ValueError("No response available.")
-        lines = self.response.readlines()
-        if len(lines) < 2:
-            raise KeyError("Uniprot web service did not return information for "
-                           "ID: '%s'" % self.uid)
-        l=0
-        #skip lines until one that starts with "DR    CAZy"
-        while l < len(lines) and not lines[l].startswith("DR   CAZy"):
-            l+=1
-        if l >= len(lines):
+            raise ValueError("No response available.")        
+        try:
+            line = next(self.response).decode("utf-8")
+            #skip lines until one that starts with "DR    CAZy"
+            while not line.startswith("DR   CAZy"):
+                line = next(self.response).decode("utf-8")
+        except StopIteration:
             # if the while loop run all the way no cazy info was found
             raise KeyError("Uniprot web service did not return CAZy information"
                            " for ID: '%s'" % self.uid)
-        _, cId, cName = lines[l].strip(".\n").split(";")
-        return {"id": cId, "name": cName}
+        _, cId, cName = line.strip(".\n").split(";")
+        return {"id": cId.strip(), "name": cName.strip()}
     
     def readGoInfo(self):
         if self.response is None:
             raise ValueError("No response available.")
-        lines = self.response.readlines()
-        if len(lines) < 2:
-            raise KeyError("Uniprot web service did not return information for "
-                           "ID: '%s'" % self.uid)
-        l=0
-        #skip lines until the first that starts with "DR"
-        while lines[l][:2] != "DR":
-            l+=1
         goInfo = []
-        #match lines while they start with DR
-        while lines[l][:2] == "DR":
-            m=re.match("DR   GO; (?P<goId>GO:\d{7}); "
-                       "(?P<aspect>[FPC]):(?P<function>[^;]+); "
-                       "(?P<evidenceCode>[A-Z]+):(?P<evidenceSource>[^.]+)", 
-                       lines[l])
-            if not m is None:
-                goInfo.append(m.groupdict())
-            l+=1
+        try:
+            line = next(self.response).decode("utf-8")
+            #skip lines until the first that starts with "DR"
+            while line[:2] != "DR":
+                line = next(self.response).decode("utf-8")
+            #match lines while they start with DR
+            while line[:2] == "DR":
+                m=re.match("DR   GO; (?P<goId>GO:\d{7}); "
+                           "(?P<aspect>[FPC]):(?P<function>[^;]+); "
+                           "(?P<evidenceCode>[A-Z]+):(?P<evidenceSource>[^.]+)", 
+                           line)
+                if not m is None:
+                    goInfo.append(m.groupdict())
+                line = next(self.response).decode("utf-8")
+        except StopIteration:
+            pass
+        if len(goInfo) == 0:
+            raise KeyError("Uniprot web service did not return GO information"
+                           " for ID: '%s'" % self.uid)
         return goInfo
         
-    
-        
-if __name__ == "__main__":
-    import sys
-    goTestData = [("N4UXJ0",[{'function': 'ATP binding', 
-                              'evidenceCode': 'IEA', 
-                              'aspect': 'F', 
-                              'goId': 'GO:0005524', 
-                              'evidenceSource': 'InterPro'}, 
-                             {'function': 'protein kinase activity', 
-                              'evidenceCode': 'IEA', 
-                              'aspect': 'F', 
-                              'goId': 'GO:0004672', 
-                              'evidenceSource': 'InterPro'}
-                             ]
-                  ),
-                ]
-    cazyTestData = [("A2QYE5", {"id": "GH28", 
-                                "name": "Glycoside Hydrolase Family 28"}),
-                    ("A0A077W732", None),
-                    ("Q39Z37", {"id": "GT2", 
-                                "name": "Glycosyltransferase Family 2"}),
-                   ]
-
-    print("Testing Uniprot ID map")
-    umap = UniprotIdMap("P_GI","ACC", retry=3, contact="fheeger@mi.fu-berlin.de")
-    print(umap["477524024"])
-
-    print("Testing Uniprot Interface")
-    uniprot = UniprotInterface(contact="fheeger@mi.fu-berlin.de")
-    print("Interface object build successful")
-#    print("Testing go info")
-#    for uid, result in goTestData:
-#        uniprot.getData(uid)
-#        print uniprot.readGoInfo()
-    print("Testing CAZy info")
-    for uid, result in cazyTestData:
-        uniprot.getData(uid)
+    def readKeggInfo(self):
+        if self.response is None:
+            raise ValueError("No response available.")
+        keggInfo = []
         try:
-            print uniprot.readCazyInfo()
-        except KeyError as e:
-            print e
+            line = next(self.response).decode("utf-8")
+            #skip lines until the first that starts with "DR"
+            while line[:2] != "DR":
+                line = next(self.response).decode("utf-8")
+            
+            #match lines while they start with DR
+            while line[:2] == "DR":
+                if line[5:9] == "KEGG":
+                    assert len(line.split(";")) == 3
+                    keggInfo.append(line.split(";")[1].strip())
+                line = next(self.response).decode("utf-8")
+        except StopIteration:
+            pass
+        if len(keggInfo) == 0:
+            raise KeyError("Uniprot web service did not return KEGG information"
+                           " for ID: '%s'" % self.uid)
+        return keggInfo
+
