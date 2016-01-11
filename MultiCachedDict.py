@@ -87,7 +87,7 @@ class SqliteListCache(object):
                   "type='table' AND name='%(table)s'" % self.conf)
         if c.fetchone() is None:
             c.execute("CREATE TABLE %(table)s "
-                      "(%(key)s TEXT PRIMARY KEY, %(value)s TEXT)" % self.conf)
+                      "(%(key)s TEXT, %(value)s TEXT)" % self.conf)
         self.conn.commit()
         if not indict is None:
             for key, valueList in indict:
