@@ -1,5 +1,6 @@
 import csv
 import time
+import sys
 try:
     from urllib2 import urlopen
 except ImportError:
@@ -232,4 +233,24 @@ class KeggReactionIdToEcMap(KeggSetMap):
         else:
             self[key] = set(enzymes)
         
-
+class KeggProteinToKoMap(KeggMap):
+    """Mapp KEGG protein ID to the Kegg Orthologous group (KO) via the KEGG 
+    Rest API.
+    
+    If the protein is not part of a KO None is returned
+    """
+    
+    baseUrl = "http://rest.kegg.jp/link/ko"
+                
+    def requestFunction(self, keggProtein):
+        return urlopen("%s/%s" % (self.baseUrl, keggProtein))
+    
+    def readResponse(self, resp, key):
+        if len(resp.strip()) == 0:
+            #no link found
+            self[key] = None
+        elif "\n" in resp.strip():
+            raise ValueError("KEGG respsonse contains more than one line.")
+        else:
+            protStr, koStr = resp.strip().split("\t")
+            self[key] = koStr

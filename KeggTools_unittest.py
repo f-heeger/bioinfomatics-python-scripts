@@ -41,5 +41,13 @@ class KeggReactionIdToEcMapTest(mapTest, unittest.TestCase):
                        ]
         self.map = KeggReactionIdToEcMap()
 
+class KeggProteinToKoMapTest(mapTest, unittest.TestCase):
+    def setUp(self):
+        self.testSet = [("spo:SPCC4B3.01", "ko:K01011"),
+                        ("mcc:695842", "ko:K01011"),
+                        ("mpur:MARPU_10910", "ko:K11181"),
+                       ]
+        self.map = KeggProteinToKoMap(retry=3)
+
 if __name__ == '__main__':
     unittest.main()
