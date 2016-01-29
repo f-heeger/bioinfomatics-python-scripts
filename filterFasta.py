@@ -188,8 +188,9 @@ if __name__ == "__main__":
     if len(args) < 1:
         if gzImported and options.gzip:
             parser.error("Pipe mode (no input file argument) does not work together with -z (gzipped input).")
-        log.write("NOTE: Running in pipe mode. Witing for input from stdin.\n")
-        log.write("Will be writing to stdout.\n")
+        if log:
+            log.write("NOTE: Running in pipe mode. Witing for input from stdin.\n")
+            log.write("Will be writing to stdout.\n")
         out = sys.stdout
     elif len(args) == 1:
         #if no output file was given write to std out
@@ -219,9 +220,9 @@ if __name__ == "__main__":
                           "be comma separated string.\n")
             idList = options.idList.strip().split(",")
     if log:
-        if options.regexp:
+        if options.regexp and log:
             log.write("Using list of Regular Expression on IDs to filter.\n")
-        elif idList:
+        elif idList and log:
             log.write("Using list of IDs to filter.\n")
                     
     if len(args) == 0:
