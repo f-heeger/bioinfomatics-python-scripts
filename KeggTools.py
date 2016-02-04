@@ -7,6 +7,8 @@ except ImportError:
     #this might be due to beeing python3
     from urllib.request import urlopen
 
+from MultiCachedDict import MultiCachedDict, SqliteCache, SqliteListCache, NotWritableError
+
 class CacheNotUsedError(Exception):
     """Exception that is raised if the user tries to do cache operations 
     (save, load) on a Map where the cache is not active"""
@@ -181,7 +183,71 @@ class KeggGeneToPathwayMap(KeggSetMap):
             path = pathStr.split(":")[1]
             pathes.add(path)
         self[key] = pathes
+
+class KeggKoToPathwayMap(KeggSetMap):
+    """Maps KEGG onthology groups (KO) to KEGG pathway IDs vis the KEGG Rest 
+    API.
+    
+    The return value is a set of the IDs of all (ko) pathways the KO is part of.
+    Pathway IDs are given without the "path" prefix. The key has to be a KEGG
+    KO ID.
+    """
+    baseUrl = "http://rest.kegg.jp/link/pathway"
+                
+    def requestFunction(self, keggKo):
+        return urlopen("%s/%s" % (self.baseUrl, keggKo))
+    
+    def readResponse(self, resp, key):
+        pathes = set([])
+        for line in resp.split("\n"):
+            if len(line.strip()) == 0:
+                continue #skip empty lines
+            ko, pathStr = line.strip().split()
+            path = pathStr.split(":")[1]
+            if path.startswith("ko"):
+                pathes.add(path)
+        self[key] = pathes
+
+class CachedKeggKoToPathwayMap(MultiCachedDict):
+    def __init__(self, dbPath):
+        kegg = KeggKoToPathwayMap(useCache=False)
+        database = SqliteListCache(filePath=dbPath, indict=None, 
+                               table="keggKo2pathway", key="ko", 
+                               value="pathway")
+        MultiCachedDict.__init__(self, None, [database, kegg])
+
+class KeggKoToEnzymeMap(KeggSetMap):
+    """Maps KEGG onthology groups (KO) to enzyme EC numbers vis the KEGG Rest 
+    API.
+    
+    The return value is a set of the EC numbers the KO is linked to.
+    EC numbers are given without the "ec" prefix. The key has to be a KEGG
+    KO ID.
+    """
+    
+    baseUrl = "http://rest.kegg.jp/link/enzyme"
+    
+    def requestFunction(self, keggKo):
+        return urlopen("%s/%s" % (self.baseUrl, keggKo))
+    
+    def readResponse(self, resp, key):
+        ecNumbers = set([])
+        for line in resp.split("\n"):
+            if len(line.strip()) == 0:
+                continue #skip empty lines
+            ko, ecStr = line.strip().split()
+            ec = ecStr.split(":")[1]
+            ecNumbers.add(ec)
+        self[key] = ecNumbers
         
+class CachedKeggKoToEnzymeMap(MultiCachedDict):
+    def __init__(self, dbPath):
+        kegg = KeggKoToEnzymeMap(useCache=False)
+        database = SqliteListCache(filePath=dbPath, indict=None, 
+                               table="keggKo2enzyme", key="ko", 
+                               value="enzyme")
+        MultiCachedDict.__init__(self, None, [database, kegg])
+
 class KeggPathwayIdToNameMap(KeggMap):
     """Maps KEGG pathway IDs to the pathway name via the KEGG Rest API.
     
@@ -254,3 +320,11 @@ class KeggProteinToKoMap(KeggMap):
         else:
             protStr, koStr = resp.strip().split("\t")
             self[key] = koStr
+            
+class CachedKeggProteinToKoMap(MultiCachedDict):
+    def __init__(self, dbPath):
+        kegg = KeggProteinToKoMap(useCache=False)
+        database = SqliteCache(filePath=dbPath, indict=None, 
+                               table="keggProt2ko", key="protId", 
+                               value="ko")
+        MultiCachedDict.__init__(self, None, [database, kegg])

@@ -49,5 +49,21 @@ class KeggProteinToKoMapTest(mapTest, unittest.TestCase):
                        ]
         self.map = KeggProteinToKoMap(retry=3)
 
+class KeggKoToPathwayMapTest(mapTest, unittest.TestCase):
+    def setUp(self):
+        self.testSet = [("ko:K00939", set(["ko00230"])),
+                        ("ko:K07679" , set(["ko02020", "ko05133"])),
+                        ("ko:K07678", set(["ko02020"]))
+                       ]
+        self.map = KeggKoToPathwayMap()
+
+class KeggKoToEnzymeMapTest(mapTest, unittest.TestCase):
+    def setUp(self):
+        self.testSet = [("ko:K01961", set(["6.4.1.2", "6.3.4.14"])),
+                        ("ko:K07679", set(["2.7.13.3"])),
+                        ("ko:K07678", set(["2.7.13.3"]))
+                       ]
+        self.map = KeggKoToEnzymeMap()
+
 if __name__ == '__main__':
     unittest.main()

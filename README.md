@@ -245,3 +245,9 @@ Maps KEGG reaction IDs to the [Enzyme Comission (EC) numbers](http://www.chem.qm
 
 #### KeggProteinToKoMap
 Maps KEGG protein IDs to the according KEGG Orthology group (KO) via the KEGG REST API. Uses the `link` operation. Input has to be a KEGG gene ID including the three letter organism prefix. Returns either a KEGG Orhtology ID (ko:.*) or `None` if no link was found.
+
+#### KeggKoToPathwayMap
+Maps KEGG Onthology groups (KOs) to the pathways they are part of via the KEGG REST API. Uses the `link` operation. The return value will be a set of the (ko) pathways the KO is part of (or an empty set if it is not part of any). The key must be a KEGG Orhtology ID (ko:.*).
+
+#### KeggKoToEnzymeMap
+Maps KEGG Onthology groups (KOs) to the [Enzyme Comission (EC) numbers](http://www.chem.qmul.ac.uk/iubmb/enzyme/) that encode their function(s) via the KEGG REST API. Uses the `link` operation. Returns a set of EC numbers as strings (or an empty set if no link is found). The key must be a KEGG Orhtology ID (ko:.*).
