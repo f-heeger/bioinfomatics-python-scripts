@@ -1,7 +1,7 @@
 import csv
 import time
 import sys
-
+from warnings import warn
 try:
     from urllib2 import urlopen
 except ImportError:
@@ -327,8 +327,8 @@ class KeggProteinToKoMap(KeggMap):
         elif "\n" in resp.strip():
             protStr, koStr = resp.strip().split("\n")[0].split("\t")
             self[key] = koStr
-            raise AmbiguityWarning("KEGG respsonse for %s contains more than "
-                                   "one line." % key, resp)
+            warn("KEGG respsonse for %s contains more than one line." % key, 
+                 AmbiguityWarning)
         else:
             protStr, koStr = resp.strip().split("\t")
             self[key] = koStr
@@ -343,6 +343,5 @@ class CachedKeggProteinToKoMap(MultiCachedDict):
         
         
 class AmbiguityWarning(UserWarning):
-    def __init__(self, message, response):
+    def __init__(self, message):
         UserWarning.__init__(self, message)
-        self.response = response
