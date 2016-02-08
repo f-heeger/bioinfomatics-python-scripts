@@ -49,6 +49,12 @@ class KeggProteinToKoMapTest(mapTest, unittest.TestCase):
                        ]
         self.map = KeggProteinToKoMap(retry=3)
 
+class KeggProteinToKoWaningTest(unittest.TestCase):
+    def runTest(self):
+        keggMap = KeggProteinToKoMap(retry=3)
+        with self.assertRaises(AmbiguityWarning):
+            keggMap["cal:CaO19.6906"]
+
 class KeggKoToPathwayMapTest(mapTest, unittest.TestCase):
     def setUp(self):
         self.testSet = [("ko:K00939", set(["ko00230"])),

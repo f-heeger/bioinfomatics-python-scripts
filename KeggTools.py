@@ -1,6 +1,7 @@
 import csv
 import time
 import sys
+
 try:
     from urllib2 import urlopen
 except ImportError:
@@ -272,6 +273,14 @@ class KeggPathwayIdToNameMap(KeggMap):
                     self[key] = name
                     break
 
+class CachedKeggPathwayIdToNameMap(MultiCachedDict):
+    def __init__(self, dbPath):
+        kegg = KeggPathwayIdToNameMap(useCache=False)
+        database = SqliteListCache(filePath=dbPath, indict=None, 
+                               table="keggpathwayId2name", key="pathId", 
+                               value="pathName")
+        MultiCachedDict.__init__(self, None, [database, kegg])
+
 class KeggReactionIdToEcMap(KeggSetMap):
     """Mapp KEGG reaction ID to the involved enzyms EC numbers via the KEGG 
     Rest API.
@@ -316,7 +325,10 @@ class KeggProteinToKoMap(KeggMap):
             #no link found
             self[key] = None
         elif "\n" in resp.strip():
-            raise ValueError("KEGG respsonse contains more than one line.")
+            protStr, koStr = resp.strip().split("\n")[0].split("\t")
+            self[key] = koStr
+            raise AmbiguityWarning("KEGG respsonse for %s contains more than "
+                                   "one line." % key, resp)
         else:
             protStr, koStr = resp.strip().split("\t")
             self[key] = koStr
@@ -328,3 +340,9 @@ class CachedKeggProteinToKoMap(MultiCachedDict):
                                table="keggProt2ko", key="protId", 
                                value="ko")
         MultiCachedDict.__init__(self, None, [database, kegg])
+        
+        
+class AmbiguityWarning(UserWarning):
+    def __init__(self, message, response):
+        UserWarning.__init__(self, message)
+        self.response = response
