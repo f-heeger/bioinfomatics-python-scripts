@@ -191,7 +191,11 @@ Map protein IDs via the Uniprot mapping service. Uses a multi-layer cache (RAM a
 Map proteins IDs via the Uniprot mapping service. Will send one request per mapping to Uniprot. Can be configured to map different ID types to each other as long as they are supported by Uniprot. 
 #### UniprotInterface
 Class to query the Uniprot web service. Comes with functions to read CAZy, KEGG and Gene Ontology informations.
- 
+#### UniprotToKeggMap
+Map a Uniprot ID to the Kegg gene IDs via the Uniprot REST API. Return a set of KEGG IDs or an empty set if no mapping was returned from Uniprot.
+#### UniprotToGoMap
+Map a Uniprot ID to the GO IDs the protein is annotated with via the Uniprot REST API. Will return a (possibly) empty set of GO IDs. Does not separate between the three GO trees.
+
 ### MultiCachedDict
 Module for multi-layer cached dictionaries. Multi-layer cache means that the dictionary will beside the normal python dictionary also have other cache layers, that will be queried one after another until a value for the key can be found. Cache layers should be ordered by speed.
 

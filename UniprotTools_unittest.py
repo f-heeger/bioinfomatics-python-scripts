@@ -68,5 +68,24 @@ class UniprotIdMapTest(mapTest, unittest.TestCase):
                               contact="fheeger@mi.fu-berlin.de",
                               returnNone=True)
 
+class UniprotToKeggMapTest(mapTest, unittest.TestCase):
+    def setUp(self):
+        self.testSet = [("Q55F68", set(["ddi:DDB_G0267376"])),
+                         ("D3YT50", set([])),
+                         ("Q92786", set(["hsa:5629"])),
+                        ]
+        self.map=UniprotToKeggMap(contact="fheeger@mi.fu-berlin.de")
+
+class UniprotToGoMapTest(mapTest, unittest.TestCase):
+    def setUp(self):
+        self.testSet = [("H0XF71", set(["GO:0016740", "GO:0034625",
+                                        "GO:0034626", "GO:0019367",
+                                        "GO:0042761", "GO:0005783",
+                                        "GO:0016021"])),
+                        ("Q6GZX2", set([])),
+                        ("Q196Y0", set(["GO:0016787", "GO:0046872"])),
+                        ]
+        self.map=self.map=UniprotToGoMap(contact="fheeger@mi.fu-berlin.de")
+
 if __name__ == '__main__':
     unittest.main()

@@ -8,7 +8,7 @@ import sys
 #based on Uniprot retrieval example on 
 # http://www.uniprot.org/help/programmatic_access
 
-from MultiCachedDict import MultiCachedDict, SqliteCache, NotWritableError
+from MultiCachedDict import MultiCachedDict, SqliteCache, SqliteListCache, NotWritableError
 
 class CachedUniprotIdMap(MultiCachedDict):
     def __init__(self, dbpath, source="ACC", target="P_REFSEQ_AC", retry=0, 
@@ -235,7 +235,7 @@ class UniprotInterface(object):
         except StopIteration:
             pass
         if len(goInfo) == 0:
-            raise KeyError("Uniprot web service did not return GO information"
+            raise ValueError("Uniprot web service did not return GO information"
                            " for ID: '%s'" % self.uid)
         return goInfo
         
@@ -258,7 +258,60 @@ class UniprotInterface(object):
         except StopIteration:
             pass
         if len(keggInfo) == 0:
-            raise KeyError("Uniprot web service did not return KEGG information"
-                           " for ID: '%s'" % self.uid)
+            raise ValueError("Uniprot web service did not return KEGG "
+                             "information for ID: '%s'" % self.uid)
         return keggInfo
 
+class UniprotToKeggMap(dict):
+    """Map a uniprot ID to the Kegg gene IDs via the Uniprot REST API"""
+    def __init__(self, indict={}, contact=None):
+        dict.__init__(self, indict)
+        self.interface = UniprotInterface(contact=contact)
+        
+    def __getitem__(self, key):
+        if key not in self:
+            try:
+                self.interface.getData(key)
+            except ValueError:
+                raise KeyError("Key %s was not in the dict and Uniprot did not "
+                               "return any information for it." % key)
+            try:
+                self[key] = set(self.interface.readKeggInfo())
+            except ValueError as e:
+                self[key] = set([])
+        return dict.__getitem__(self, key)
+
+class CachedUniprotToKeggMap(MultiCachedDict):
+    def __init__(self, dbPath, email):
+        uniprot = UniprotToKeggMap(contact=email)
+        database = SqliteListCache(filePath=dbPath, indict=None, 
+                                   table="uniprot2kegg", key="uId", 
+                                   value="keggGene")
+        MultiCachedDict.__init__(self, None, [database, uniprot])
+        
+class UniprotToGoMap(dict):
+    """Map a uniprot ID to theGO IDs via the Uniprot REST API"""
+    def __init__(self, indict={}, contact=None):
+        dict.__init__(self, indict)
+        self.interface = UniprotInterface(contact=contact)
+        
+    def __getitem__(self, key):
+        if key not in self:
+            try:
+                self.interface.getData(key)
+            except ValueError:
+                raise KeyError("Key %s was not in the dict and Uniprot did not "
+                               "return any information for it." % key)
+            try:
+                self[key] = set([entry["goId"] for entry in self.interface.readGoInfo()])
+            except ValueError as e:
+                self[key] = set([])
+        return dict.__getitem__(self, key)
+        
+class CachedUniprotToGoMap(MultiCachedDict):
+    def __init__(self, dbPath, email):
+        uniprot = UniprotToGoMap(contact=email)
+        database = SqliteListCache(filePath=dbPath, indict=None, 
+                                   table="uniprot2go", key="uId", 
+                                   value="go")
+        MultiCachedDict.__init__(self, None, [database, uniprot])
