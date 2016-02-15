@@ -261,7 +261,7 @@ class KeggPathwayIdToNameMap(KeggMap):
     
     def readResponse(self, resp, key):
         if len(resp.strip()) == 0:
-            self[key] = None
+            raise KeyError("No response from KEGG for pathway: %s" % key)
         else:
             for line in resp.split("\n"):
                 if line[0] in [" ","/"]:
@@ -276,7 +276,7 @@ class KeggPathwayIdToNameMap(KeggMap):
 class CachedKeggPathwayIdToNameMap(MultiCachedDict):
     def __init__(self, dbPath):
         kegg = KeggPathwayIdToNameMap(useCache=False)
-        database = SqliteListCache(filePath=dbPath, indict=None, 
+        database = SqliteCache(filePath=dbPath, indict=None, 
                                table="keggpathwayId2name", key="pathId", 
                                value="pathName")
         MultiCachedDict.__init__(self, None, [database, kegg])
