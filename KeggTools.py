@@ -312,7 +312,8 @@ class KeggProteinToKoMap(KeggMap):
     """Mapp KEGG protein ID to the Kegg Orthologous group (KO) via the KEGG 
     Rest API.
     
-    If the protein is not part of a KO None is returned
+    Returns a set of KO gorups the protein is part of. If the protein is not 
+    part of a KO an empty list is returned.
     """
     
     baseUrl = "http://rest.kegg.jp/link/ko"
@@ -323,22 +324,23 @@ class KeggProteinToKoMap(KeggMap):
     def readResponse(self, resp, key):
         if len(resp.strip()) == 0:
             #no link found
-            self[key] = None
-        elif "\n" in resp.strip():
-            protStr, koStr = resp.strip().split("\n")[0].split("\t")
-            self[key] = koStr
-            warn("KEGG respsonse for %s contains more than one line." % key, 
-                 AmbiguityWarning)
+            self[key] = set([])
         else:
-            protStr, koStr = resp.strip().split("\t")
-            self[key] = koStr
+            self[key] = set([])
+            for line in resp.strip().split("\n"):
+                protStr, koStr = line.strip().split("\t")
+                if protStr == key:
+                    #only accept the mappings if the orginal key is there
+                    #sometime KEGG will return alternative key versions with
+                    # the same KO
+                    self[key].add(koStr)
             
 class CachedKeggProteinToKoMap(MultiCachedDict):
     def __init__(self, dbPath):
         kegg = KeggProteinToKoMap(useCache=False)
-        database = SqliteCache(filePath=dbPath, indict=None, 
-                               table="keggProt2ko", key="protId", 
-                               value="ko")
+        database = SqliteListCache(filePath=dbPath, indict=None, 
+                                   table="keggProt2ko", key="protId", 
+                                   value="ko")
         MultiCachedDict.__init__(self, None, [database, kegg])
         
         

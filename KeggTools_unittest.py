@@ -45,19 +45,12 @@ class KeggReactionIdToEcMapTest(mapTest, unittest.TestCase):
 
 class KeggProteinToKoMapTest(mapTest, unittest.TestCase):
     def setUp(self):
-        self.testSet = [("spo:SPCC4B3.01", "ko:K01011"),
-                        ("mcc:695842", "ko:K01011"),
-                        ("mpur:MARPU_10910", "ko:K11181"),
+        self.testSet = [("spo:SPCC4B3.01", set(["ko:K01011"])),
+                        ("mcc:695842", set(["ko:K01011"])),
+                        ("mpur:MARPU_10910", set(["ko:K11181"])),
+                        ("cal:CaO19.6906", set(["ko:K14753"])),
                        ]
         self.map = KeggProteinToKoMap(retry=3, useCache=False)
-
-class KeggProteinToKoWaningTest(unittest.TestCase):
-    def runTest(self):
-        keggMap = KeggProteinToKoMap(retry=3, useCache=False)
-        with catch_warnings(record=True) as warnings:
-            keggMap["cal:CaO19.6906"]
-            self.assertEqual(len(warnings), 1)
-            self.assertEqual(warnings[0].category, type(AmbiguityWarning("")))
 
 class KeggKoToPathwayMapTest(mapTest, unittest.TestCase):
     def setUp(self):
