@@ -194,7 +194,8 @@ if __name__ == "__main__":
         out = sys.stdout
     elif len(args) == 1:
         #if no output file was given write to std out
-        log.write("Will be writing to stdout.\n")
+        if log:
+            log.write("Will be writing to stdout.\n")
         out = sys.stdout
     else:
         out = args[1]
