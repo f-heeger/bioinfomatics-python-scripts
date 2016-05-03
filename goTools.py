@@ -65,8 +65,8 @@ class GoNode(object):
         while len(toDo) > 0:
             tNode = toDo.pop()
             aTerms.add(tNode.term.gId)
-            if len(tNode.parents)==0:
-                print("root node: %s" % str(tNode))
+#            if len(tNode.parents)==0:
+#                print("root node: %s" % str(tNode))
             for parent in tNode.parents:
                 if parent.term.gId not in aTerms:
                     toDo.append(parent)
@@ -166,7 +166,7 @@ def createGoTree(goDict):
     """Creates a dictonary of correctly linked GoNodes to represent the GO DAG.
     
     The dictonary allows you to retrieve the GoNode according to a GO ID and
-    travers the GO DAG bottom up along the parnets attribute.
+    travers the GO DAG bottom up along the parents attribute.
     """
     goTree = {}
     for gId, term in goDict.items():
@@ -185,7 +185,8 @@ def createGoTree(goDict):
     return goTree
 
 if __name__ == "__main__":
-    import sys
-    from urllib2 import urlopen
-    d=parseGoOboDict(urlopen("http://purl.obolibrary.org/obo/go.obo"), True, open("gopareser.log","w"))
+    import sys, codecs
+    from urllib.request import urlopen
+    reader = codecs.getreader("utf-8")
+    d=parseGoOboDict(reader(urlopen("http://purl.obolibrary.org/obo/go.obo")), True, open("gopareser.log","w"))
     t=createGoTree(d)
