@@ -74,14 +74,15 @@ It will write a temporary R script and pipe the data into a R process executing 
 ### removeSeqsWithN
 
 >Usage: removeSeqsWithN.py [options] inputfile1 [inputfile2]  
->
+>  
 >Options:  
 >  -h, --help       show this help message and exit  
 >  -z, --gzip       input file is gzipped  
 >  -a, --fasta      set input and output format to fasta [default: fastq]  
->  -n X, --max-n=X  remove all sequences with more than X Ns [default: 5]  
->
->Remove sequences with more then a certain number of Ns  
+>  -n X, --max-n=X  remove all sequences with more than X Ns. If X is set to -1  
+>                   only sequence that are only Ns will be removed [default: 5]  
+
+Remove sequences with more then a certain number of Ns. If the threshold (`-n`) is set to -1 only sequences that consist completely of Ns will be removed.
 
 Write all sequences that have less than a certain number of Ns to a different file.
 

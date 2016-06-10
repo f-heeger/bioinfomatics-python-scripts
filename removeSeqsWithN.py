@@ -32,10 +32,16 @@ Optinal sequences with more Ns can be written to a different stream.
             r1 = strIt1.next()
         except StopIteration:
             break
-        remove = r1.seq.count("N") > threshold
+        if threshold == -1:
+            remove = r1.seq.count("N") == len(r1.seq)
+        else:
+            remove = r1.seq.count("N") > threshold
         if not inStream2 is None:
             r2 = strIt2.next()
-            remove |= r2.seq.count("N") > threshold
+            if threshold == -1:
+                remove |= r2.seq.count("N") == len(r2.seq)
+            else:
+                remove |= r2.seq.count("N") > threshold
         if remove:
             n+=1
         else:
@@ -61,8 +67,10 @@ if __name__ == "__main__":
                       " fasta [default: fastq]",)
     parser.add_option("-n", "--max-n",
                       action="store", type="int", dest="maxNs", default=5, 
-                      help="remove all sequences with more than X Ns "
-                      "[default: 5]", metavar="X")
+                      help="remove all sequences with more than X Ns. "
+                           "If X is set to -1 only sequence that are only Ns "
+                           "will be removed [default: 5]", 
+                      metavar="X")
 #    parser.add_option("-r", "--print-removed",
 #                       action="store_true", dest="removed", default=False, 
 #                       help="write files with removed sequences",)
