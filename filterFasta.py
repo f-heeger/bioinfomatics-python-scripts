@@ -15,7 +15,7 @@ from Bio import SeqIO
 
 def filterFasta(inStream, outPath, minLength=None, idList=None, 
                 random=None, fastq=False, regex=False, neg=False, 
-                log=sys.stderr):
+                noWarn=False, log=sys.stderr):
     if fastq:
         format = "fastq"
     else:
@@ -24,11 +24,12 @@ def filterFasta(inStream, outPath, minLength=None, idList=None,
         sampleRandom(inStream, outPath, format, random, log)
     else:
         filterLengthIdList(inStream, outPath, format, minLength, idList, 
-                           regex, neg, log)
+                           regex, neg, noWarn, log)
     
 
 def filterLengthIdList(inStream, outPath, format, minLength=None, 
-                       idList=None, regex=False, neg=False, log=sys.stderr):
+                       idList=None, regex=False, neg=False, noWarn=False, 
+                       log=sys.stderr):
     if not idList is None:
         if regex:
             idRes = [re.compile(x) for x in idList]
@@ -72,10 +73,10 @@ def filterLengthIdList(inStream, outPath, format, minLength=None,
         multiFound = 0
         if not idList is None and not regex:
             for recId, found in idDict.items():
-                if found == 0:
+                if found == 0 and not noWarn:
                     warn("ID '%s' was not found in the file." % recId)
                     notFound +=1
-                if found > 1:
+                if found > 1 and not noWarn:
                     warn("ID '%s' encountered %i times in the file" \
                          % (recId, found))
                     multiFound +=1
@@ -134,6 +135,10 @@ if __name__ == "__main__":
     parser.add_option("-q", "--quiet",
                        action="store_true", dest="quiet", default=False, 
                        help="do not print status messages to the screen",)
+    parser.add_option("-w", "--supress-warnings",
+                       action="store_true", dest="noWarn", default=False, 
+                       help="do not print warnings if a ID was found more or "
+                            "less than onece",)
     parser.add_option("-u", "--fastq",
                        action="store_true", dest="fastq",
                        default=False, help="input file is fastq",)
@@ -235,7 +240,8 @@ if __name__ == "__main__":
     
     try:                
         filterFasta(inStream, out, options.minLength, idList, options.random, 
-                    options.fastq, options.regexp, options.neg, log=log)
+                    options.fastq, options.regexp, options.neg, options.noWarn, 
+                    log=log)
     finally:
         if len(args) > 0:
             inStream.close()
