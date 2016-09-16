@@ -38,8 +38,7 @@ rule creatPrimerFile:
     output: "{pair_name}/{pair_name}.txt"
     run:
         pName = wildcards.pair_name
-        cmd = "mkdir %s" % pName
-        cmd += '; echo "%s\t%s\t%s\n" > {output}' % (pName, config["primer_pairs"][pName]["forward_seq"], config["primer_pairs"][pName]["reverse_seq"])
+        cmd = 'echo "%s\t%s\t%s\n" > {output}' % (pName, config["primer_pairs"][pName]["forward_seq"], config["primer_pairs"][pName]["reverse_seq"])
         shell(cmd)
 
 rule tntBlast:
