@@ -98,13 +98,24 @@ rule generateLengthPlot:
         library(scales)
         library(gridExtra)
 
-        data = read.table("%(infile)s", header=F)
-        colnames(data) = c("seqId", "len")
+        data =  tryCatch({{return(read.table("%(infile)s",  header=F))}}, error=function(e) {{return(data.frame())}})
+        
+        if (dim(data)[1] == 0) {{
+            pdf("%(outfile)s")
+            plot(0:10, type = "n", xaxt="n", yaxt="n", bty="n", xlab = "", ylab = "")
+            text(5, 8, "No data", cex=2)
+            dev.off()
+        }} else {{
+        
+            colnames(data) = c("seqId", "len")
 
-        plotList = list()
-        plotList[[1]] = ggplot(data, aes(x=len)) + geom_histogram(binwidth=1, color="black") + ggtitle(expression(atop("Length distribution of predicted amplicons", atop("with primer pair: %(primers)s on database: %(db)s", atop("min. Temp.: %(minT).2f, max. Temp.: %(maxT).2f, max. Len.: %(len)i"))))) + xlab("length")
-        plotList[[2]] = ggplot(data, aes(x=len)) + geom_density() + ggtitle(expression(atop("Length distribution of predicted amplicons", atop("with primer pair: %(primers)s on database: %(db)s", atop("min. Temp.: %(minT).2f, max. Temp.: %(maxT).2f, max. Len.: %(len)i"))))) + xlab("length")
-        ggsave("%(outfile)s", do.call(marrangeGrob, c(plotList, list(nrow=1, ncol=1, top=NULL))))
+            plotList = list()
+            plotList[[1]] = ggplot(data, aes(x=len)) + geom_histogram(binwidth=1, color="black") + ggtitle(expression(atop("Length distribution of predicted amplicons", atop("with primer pair: %(primers)s on database: %(db)s", atop("min. Temp.: %(minT).2f, max. Temp.: %(maxT).2f, max. Len.: %(len)i"))))) + xlab("length")
+            plotList[[2]] = ggplot(data, aes(x=len)) + geom_density() + ggtitle(expression(atop("Length distribution of predicted amplicons", atop("with primer pair: %(primers)s on database: %(db)s", atop("min. Temp.: %(minT).2f, max. Temp.: %(maxT).2f, max. Len.: %(len)i"))))) + xlab("length")
+            pdf("%(outfile)s")
+            print(plotList)
+            dev.off()
+        }}
         """ % {"infile": input[0], "outfile": output[0], 
                "primers": wildcards.pair_name, 
                "db": wildcards.dbname, 
