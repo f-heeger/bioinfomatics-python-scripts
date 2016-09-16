@@ -8,8 +8,8 @@ from NcbiTools import CachedNuclId2TaxIdMap
 from TntBlastParser import tntBlastParser
 from plotFastaLengthDist import getStats
 
-def getTaxIds(ampl, dbpath):
-    gi2tax = CachedNuclId2TaxIdMap(dbpath)
+def getTaxIds(ampl, dbpath, email):
+    gi2tax = CachedNuclId2TaxIdMap(dbpath, email)
     perTax = {}
     for rec in ampl:
         try:
@@ -120,7 +120,7 @@ rule getTaxonomyInfo:
     resources: dbaccess=1
     run:
         ampl = list(tntBlastParser(open(input[0])))
-        taxDist = getTaxIds(ampl, config["gi2tax_db"])
+        taxDist = getTaxIds(ampl, config["gi2tax_db"], config["email"])
         with open(output[0], "w") as out:
             for tax, amplList in taxDist.items():
                 for gi, start, end, seq in amplList:
