@@ -59,7 +59,7 @@ dev.off()
     p = Popen(["Rscript", "r_plot.tmp"], stdin=PIPE)
     #pipe in data in tabular format
     for seqId, length in stats["length"]:
-        p.stdin.write("%s\t%i\n" % (seqId, length))
+        p.stdin.write(bytes("%s\t%i\n" % (seqId, length), "utf-8"))
     p.stdin.close()
     p.wait()
     os.remove("r_plot.tmp")
