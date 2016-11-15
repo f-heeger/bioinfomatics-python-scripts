@@ -102,9 +102,9 @@ class NcbiMap(dict):
             for key, value in self.items():
                 writer.writerow([str(key), str(value)])
 
-    def __del__(self):
-        if self.useCache:
-            self.save()
+#    def __del__(self):
+#        if self.useCache:
+#            self.save()
 
 #TODO: rwrite for non soap version
 #class NcbiSoapBatchMap(NcbiMap):
@@ -178,7 +178,7 @@ class TaxonomyNodeName2TaxId(NcbiMap):
     def load(self):
         if not self.useCache:
             raise CacheNotUsedError()
-        for row in csv.reader(open(self.cachePath, "rb")):
+        for row in csv.reader(open(self.cachePath, "r")):
             name, tax = row
             if tax not in self:
                 self[tax] = set()
@@ -214,15 +214,15 @@ class LineageMap(NcbiMap):
         tab = []
         for tax, m in self.items():
             for rank, lTax, lName in m:
-                tab.append([tax, rank, lTax, lName])
-        with open(self.cachePath, "wb") as out:
+                tab.append([tax, rank, lTax, '"%s"' % lName])
+        with open(self.cachePath, "w") as out:
             for row in tab:
                 out.write(",".join([str(field) for field in row])+"\n")
     
     def load(self):
         if not self.useCache:
             raise CacheNotUsedError()
-        for row in csv.reader(open(self.cachePath, "rb")):
+        for row in csv.reader(open(self.cachePath, "r")):
             tax, rank, lTax, lName = row
             if tax not in self:
                 self[tax] = []
