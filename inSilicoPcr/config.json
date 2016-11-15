@@ -1,4 +1,5 @@
 {
+    "email" : "you@email-provider.com",
     "tntblast" : "/home/heeger/bin/tntblast/bin/tntblast",
     "krona" : "/home/heeger/bin/KronaTools-2.4/scripts/ImportTaxonomy.pl",
     "mason" : "/home/heeger/bin/seqan-release/bin/mason_frag_sequencing",
