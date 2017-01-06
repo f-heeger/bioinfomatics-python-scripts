@@ -194,7 +194,7 @@ if __name__ == "__main__":
         if gzImported and options.gzip:
             parser.error("Pipe mode (no input file argument) does not work together with -z (gzipped input).")
         if log:
-            log.write("NOTE: Running in pipe mode. Witing for input from stdin.\n")
+            log.write("NOTE: Running in pipe mode. Waiting for input from stdin.\n")
             log.write("Will be writing to stdout.\n")
         out = sys.stdout
     elif len(args) == 1:
