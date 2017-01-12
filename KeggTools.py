@@ -343,7 +343,38 @@ class CachedKeggProteinToKoMap(MultiCachedDict):
                                    value="ko")
         MultiCachedDict.__init__(self, None, [database, kegg])
         
-        
+
+class KeggEcToPathwayMap(KeggSetMap):
+    """Maps EC number to KEGG pathway IDs vis the KEGG Rest API.
+    
+    The return value is a set of the IDs of all (map) pathways the EC number is 
+    part of. Pathway IDs are given without the "path" prefix. If the enyzm is 
+    not part of any pathway an empty list is returned.
+    """
+    baseUrl = "http://rest.kegg.jp/link/pathway"
+                
+    def requestFunction(self, ec):
+        return urlopen("%s/%s" % (self.baseUrl, ec))
+    
+    def readResponse(self, resp, key):
+        pathes = set([])
+        for line in resp.split("\n"):
+            if len(line.strip()) == 0:
+                continue #skip empty lines
+            ko, pathStr = line.strip().split()
+            path = pathStr.split(":")[1]
+            if path.startswith("map"):
+                pathes.add(path)
+        self[key] = pathes
+
+class CachedKeggEcToPathwayMap(MultiCachedDict):
+    def __init__(self, dbPath):
+        kegg = KeggECToPathwayMap(useCache=False)
+        database = SqliteListCache(filePath=dbPath, indict=None, 
+                               table="keggEc2pathway", key="ec", 
+                               value="pathway")
+        MultiCachedDict.__init__(self, None, [database, kegg])
+
 class AmbiguityWarning(UserWarning):
     def __init__(self, message):
         UserWarning.__init__(self, message)

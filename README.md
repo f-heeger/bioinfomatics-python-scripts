@@ -240,7 +240,7 @@ Like `KeggMap`, but can have multiple values for one key and supports `None` as 
 Maps NCBI protein GIs to KEGG gene IDs via the KEGG REST API. Uses the `convert` operation. Will return a KEGG gene ID (including the three letter organism prefix) or `None` if no mapping was found.
 
 #### KeggGeneToPathwayMap
-Maps KEGG gene IDs to KEGG pathway IDs via the KEGG REST API. Uses the `link` operation. Will return a set of pathway IDs witout the `path:` prefix. Input has to be a KEGG gene ID including the three letter organism prefix.
+Maps KEGG gene IDs to KEGG pathway IDs via the KEGG REST API. Uses the `link` operation. Will return a set of pathway IDs without the `path:` prefix. Input has to be a KEGG gene ID including the three letter organism prefix.
 
 #### KeggPathwayIdToNameMap
 Maps KEGG pathway IDs (wihtout the `path:` prefix) to their name via the KEGG REST API. 
@@ -256,3 +256,6 @@ Maps KEGG Onthology groups (KOs) to the pathways they are part of via the KEGG R
 
 #### KeggKoToEnzymeMap
 Maps KEGG Onthology groups (KOs) to the [Enzyme Comission (EC) numbers](http://www.chem.qmul.ac.uk/iubmb/enzyme/) that encode their function(s) via the KEGG REST API. Uses the `link` operation. Returns a set of EC numbers as strings (or an empty set if no link is found). The key must be a KEGG Orhtology ID (ko:.*).
+
+#### KeggEcToPathwayMap
+Maps [Enzyme Comission (EC) numbers](http://www.chem.qmul.ac.uk/iubmb/enzyme/) to KEGG pathway IDs vis the KEGG Rest API. Uses the `link` operation. Returns a set of pathway IDs as strings without the `path:` prefix. (or an empty set if no link is found). The key must be a EC nubmer in KEGG format (ec:[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+).

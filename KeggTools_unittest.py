@@ -69,5 +69,13 @@ class KeggKoToEnzymeMapTest(mapTest, unittest.TestCase):
                        ]
         self.map = KeggKoToEnzymeMap()
 
+class KeggEcToPathwayMapTest(mapTest, unittest.TestCase):
+    def setUp(self):
+        self.testSet = [("ec:1.1.1.388", set(["map00030"])),
+                        ("ec:2.7.4.3", set(["map00230", "map00730", "map01100", "map01110", "map01130"])),
+                        ("ko:1.10.3.2", set([]))
+                       ]
+        self.map = KeggEcToPathwayMap()
+
 if __name__ == '__main__':
     unittest.main()
