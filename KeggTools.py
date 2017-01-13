@@ -121,8 +121,9 @@ class KeggSetMap(KeggMap):
         for key, valueList in self.items():
             if valueList is None:
                 tab.append([key, "None"])
-            for value in valueList:
-                tab.append([key, value])
+            else:
+                for value in valueList:
+                    tab.append([key, value])
         with open(self.cachePath, "w") as out:
             writer = csv.writer(out, delimiter=",", quotechar="\"", 
                                 quoting=csv.QUOTE_MINIMAL)
