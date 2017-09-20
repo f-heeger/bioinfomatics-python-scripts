@@ -46,7 +46,7 @@ rule tntBlast:
     output: "{pair_name}/{pair_name}_vs_{dbname}.out"
     params: database="{dbname}"
     threads: 6
-    message: "Running tnt blast for primer pair {wildcards.pair_name} on db {wildcards.dbname} with threads"
+    message: "Running tnt blast for primer pair {wildcards.pair_name} on db {wildcards.dbname} with {threads} threads"
     run:
         name = wildcards.pair_name
         props = config["primer_pairs"][name]
@@ -54,7 +54,7 @@ rule tntBlast:
             cmd = "mpirun -np {threads} "
         else:
             cmd = ""
-        cmd += config["tntblast"] + " -l %(max_len)i -e %(min_temp)i -E %(max_temp)i -i {input.primerFile}" % props + " -d %s -o {output}" % config["databases"][params.database]
+        cmd += config["tntblast"] + " -l %(max_len)i -e %(min_temp)i -x %(max_temp)i -i {input.primerFile}" % props + " -d %s -o {output}" % config["databases"][params.database]
         shell(cmd)
     
 rule extractAmplicons:
