@@ -15,7 +15,7 @@ from Bio import SeqIO
 
 def filterFasta(inStream, outPath, minLength=None, idList=None, 
                 random=None, fastq=False, regex=False, neg=False, 
-                noWarn=False, log=sys.stderr):
+                noWarn=False, ignoreAt=False, log=sys.stderr):
     if fastq:
         format = "fastq"
     else:
@@ -24,13 +24,16 @@ def filterFasta(inStream, outPath, minLength=None, idList=None,
         sampleRandom(inStream, outPath, format, random, log)
     else:
         filterLengthIdList(inStream, outPath, format, minLength, idList, 
-                           regex, neg, noWarn, log)
+                           regex, neg, noWarn, ignoreAt, log)
     
 
 def filterLengthIdList(inStream, outPath, format, minLength=None, 
                        idList=None, regex=False, neg=False, noWarn=False, 
-                       log=sys.stderr):
+                       ignoreAt=False, log=sys.stderr):
     if not idList is None:
+        if ignoreAt:
+            log.write("Ignoring all \"@\" signs at the start of IDs")
+            idList = [rId.lstrip("@") for rId in idList]
         if regex:
             idRes = [re.compile(x) for x in idList]
         else:
@@ -168,7 +171,12 @@ if __name__ == "__main__":
                        default=False, 
                        help="use regular expression instead of exact "
                             "matching for IDs",)
-      
+    parser.add_option("-a", "--ignore-at",
+                       action="store_true", dest="ignore_at",
+                       default=False, 
+                       help="ignore the first letter of the query IDs if it is"
+                            "an @ (this is for more convinent filter list "
+                            "creation from fastq files)",)
     parser.add_option("-n", "--negative",
                        action="store_true", dest="neg",
                        default=False, 
@@ -241,7 +249,7 @@ if __name__ == "__main__":
     try:                
         filterFasta(inStream, out, options.minLength, idList, options.random, 
                     options.fastq, options.regexp, options.neg, options.noWarn, 
-                    log=log)
+                    options.ignore_at, log=log)
     finally:
         if len(args) > 0:
             inStream.close()
