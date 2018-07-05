@@ -32,7 +32,7 @@ def filterLengthIdList(inStream, outPath, format, minLength=None,
                        ignoreAt=False, log=sys.stderr):
     if not idList is None:
         if ignoreAt:
-            log.write("Ignoring all \"@\" signs at the start of IDs")
+            log.write("Ignoring all \"@\" signs at the start of IDs\n")
             idList = [rId.lstrip("@") for rId in idList]
         if regex:
             idRes = [re.compile(x) for x in idList]
