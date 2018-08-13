@@ -307,7 +307,7 @@ class KeggKoIdToDefMap(KeggMap):
 
 class CachedKeggKoIdToDefMap(MultiCachedDict):
     def __init__(self, dbPath):
-        kegg = KeggPathwayIdToNameMap(useCache=False)
+        kegg = KeggKoIdToDefMap(useCache=False)
         database = SqliteCache(filePath=dbPath, indict=None, 
                                table="keggkoId2def", key="koId", 
                                value="koDef")
