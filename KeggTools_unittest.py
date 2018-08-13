@@ -23,7 +23,7 @@ class KeggGeneTopathwayMapTest(mapTest, unittest.TestCase):
         self.testSet = [("eco:b3061", set(["eco00630"])),
                         ("mfe:Mefer_0938", set(["mfe00680", "mfe01100",
                                                 "mfe01120", "mfe01200"])),
-                        ("mta:Moth_1996", set(["mta00220", "mta01100"])),
+                        ("mta:Moth_1996", set(["mta00220", "mta01100", "mta01230"])),
                        ]
         self.map = KeggGeneToPathwayMap(retry=3, useCache=False)
 
@@ -34,6 +34,14 @@ class KeggPathwayIdToNameMapTest(mapTest, unittest.TestCase):
                         ("mfe00680", "Methane metabolism")
                         ]
         self.map = KeggPathwayIdToNameMap(retry=3, useCache=False)
+
+class KeggKoIdToDefMapTest(mapTest, unittest.TestCase):
+    def setUp(self):
+        self.testSet = [("K00262", "glutamate dehydrogenase (NADP+) [EC:1.4.1.4]"),
+                        ("K14805" , "ATP-dependent RNA helicase DDX24/MAK5 [EC:3.6.4.13]"),
+                        ("K13953", "alcohol dehydrogenase, propanol-preferring [EC:1.1.1.1]")
+                       ]
+        self.map = KeggKoIdToDefMap()
 
 class KeggReactionIdToEcMapTest(mapTest, unittest.TestCase):
     def setUp(self):
@@ -48,7 +56,7 @@ class KeggProteinToKoMapTest(mapTest, unittest.TestCase):
         self.testSet = [("spo:SPCC4B3.01", set(["ko:K01011"])),
                         ("mcc:695842", set(["ko:K01011"])),
                         ("mpur:MARPU_10910", set(["ko:K11181"])),
-                        ("cal:CaO19.6906", set(["ko:K14753"])),
+                        ("cal:CAALFM_C701250WA", set(["ko:K14753"])),
                        ]
         self.map = KeggProteinToKoMap(retry=3, useCache=False)
 
