@@ -31,6 +31,9 @@ Normally write human readable output. With the -t option a tabular format of the
 >  -r X, --random=X      randomly sample X sequence from input file  
 >  -e, --regexp          use regular expression instead of exact matching for  
 >                        IDs  
+>  -a, --ignore-at       ignore the first letter of the query IDs if it is an @
+>                        (this is for more convenient filter list creation from
+>                        fastq files)  
 >  -n, --negative        do exactly the opposite of what would normally be done  
 
 Filter fasta/fastq files in different way.
@@ -43,6 +46,11 @@ Only write sequences with an ID from the list given. The list can either be give
 Write a random subset of the sequences of the given size.
 
 The `-n` option will switch to negative mode. Meaning the script will do exactly the oposite it normally does.
+
+The `-a` option is will make the script ignore @-signs at the begining of IDs in the ID list.
+The main use case for this is with two fastq files (A.fq and B.fq) and all your ID lines start with @M01271 (because M01271 is the serial number of your sequencer). If we want to keep in B only the sequences that are also in A, we can run the following:
+>grep "^@M01271" A.fq > id_list.txt
+>python filterFasta.py -i id_list.txt -a B.fq > B_and_A.fq
 
 Input data can be provided as a file (first argument) or be piped in.
 
@@ -244,6 +252,9 @@ Maps KEGG gene IDs to KEGG pathway IDs via the KEGG REST API. Uses the `link` op
 
 #### KeggPathwayIdToNameMap
 Maps KEGG pathway IDs (wihtout the `path:` prefix) to their name via the KEGG REST API. 
+
+#### KeggPathwayIdToNameMap
+Maps KEGG KO IDs (`K[0-9]{5}`) to their "definition" via the KEGG REST API. 
 
 #### KeggReactionIdToEcMap
 Maps KEGG reaction IDs to the [Enzyme Comission (EC) numbers](http://www.chem.qmul.ac.uk/iubmb/enzyme/) of the involved enzymes. Returns a set of EC numbers as strings or `None` if no information was found. Input must be a KEGG reaction ID (R\[0-9\]{5})

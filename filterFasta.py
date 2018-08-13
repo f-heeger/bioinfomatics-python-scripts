@@ -174,8 +174,8 @@ if __name__ == "__main__":
     parser.add_option("-a", "--ignore-at",
                        action="store_true", dest="ignore_at",
                        default=False, 
-                       help="ignore the first letter of the query IDs if it is"
-                            "an @ (this is for more convinent filter list "
+                       help="ignore the first letter of the query IDs if it is "
+                            "an @ (this is for more convenient filter list "
                             "creation from fastq files)",)
     parser.add_option("-n", "--negative",
                        action="store_true", dest="neg",
@@ -192,6 +192,8 @@ if __name__ == "__main__":
         parser.error("Options -e can only be used with -i.")
     if (options.random and options.neg):
         parser.error("Negative mode does not work with random mode.")
+    if (options.ignore_at and options.random):
+        parser.error("Ignoring \"@\" (-a) is not meaningful in random mode.")
     
     if options.quiet:
         log = None

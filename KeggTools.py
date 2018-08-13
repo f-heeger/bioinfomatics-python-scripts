@@ -282,6 +282,37 @@ class CachedKeggPathwayIdToNameMap(MultiCachedDict):
                                value="pathName")
         MultiCachedDict.__init__(self, None, [database, kegg])
 
+class KeggKoIdToDefMap(KeggMap):
+    """Maps KEGG KO IDs to the KO definition via the KEGG Rest API.
+    
+    """ 
+    
+    baseUrl = "http://rest.kegg.jp/get"
+    
+    def requestFunction(self, pathwayId):
+        return urlopen("%s/%s" % (self.baseUrl, pathwayId))
+    
+    def readResponse(self, resp, key):
+        if len(resp.strip()) == 0:
+            raise KeyError("No response from KEGG for KO: %s" % key)
+        else:
+            for line in resp.split("\n"):
+                if line[0] in [" ","/"]:
+                    #continued field from line before or end of entry
+                    continue
+                field, value = line.split(None,1)
+                if field == "DEFINITION":
+                    self[key] = value
+                    break
+
+class CachedKeggKoIdToDefMap(MultiCachedDict):
+    def __init__(self, dbPath):
+        kegg = KeggPathwayIdToNameMap(useCache=False)
+        database = SqliteCache(filePath=dbPath, indict=None, 
+                               table="keggkoId2def", key="koId", 
+                               value="koDef")
+        MultiCachedDict.__init__(self, None, [database, kegg])
+
 class KeggReactionIdToEcMap(KeggSetMap):
     """Mapp KEGG reaction ID to the involved enzyms EC numbers via the KEGG 
     Rest API.
