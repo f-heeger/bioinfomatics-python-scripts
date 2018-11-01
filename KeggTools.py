@@ -302,7 +302,7 @@ class KeggKoIdToDefMap(KeggMap):
                     continue
                 field, value = line.split(None,1)
                 if field == "DEFINITION":
-                    self[key] = value
+                    self[key] = value.strip("\n")
                     break
 
 class CachedKeggKoIdToDefMap(MultiCachedDict):
