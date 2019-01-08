@@ -85,5 +85,13 @@ class KeggEcToPathwayMapTest(mapTest, unittest.TestCase):
                        ]
         self.map = KeggEcToPathwayMap()
 
+class KeggEcToKoMapTest(mapTest, unittest.TestCase):
+    def setUp(self):
+        self.testSet = [("ec:1.1.1.100", set(["K00059", "K11610"])),
+                        ("ec:1.1.1.101", set(["K06123"])),
+                        ("ec:1.1.1.201", set([]))
+                       ]
+        self.map = KeggEcToKoMap()
+
 if __name__ == '__main__':
     unittest.main()

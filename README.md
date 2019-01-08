@@ -270,3 +270,6 @@ Maps KEGG Onthology groups (KOs) to the [Enzyme Comission (EC) numbers](http://w
 
 #### KeggEcToPathwayMap
 Maps [Enzyme Comission (EC) numbers](http://www.chem.qmul.ac.uk/iubmb/enzyme/) to KEGG pathway IDs vis the KEGG Rest API. Uses the `link` operation. Returns a set of pathway IDs as strings without the `path:` prefix. (or an empty set if no link is found). The key must be a EC nubmer in KEGG format (ec:[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+).
+
+#### KeggEcToKoMap
+Maps [Enzyme Comission (EC) numbers](http://www.chem.qmul.ac.uk/iubmb/enzyme/) to KEGG Orthology (KO) IDs vis the KEGG Rest API. Uses the `link` operation. Returns a set of KO IDs as strings without the `ko:` prefix. (or an empty set if no link is found or the EC number does not exist). The key must be a EC nubmer in KEGG format (ec:[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+).
