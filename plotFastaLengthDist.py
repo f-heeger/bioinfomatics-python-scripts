@@ -1,4 +1,6 @@
 import os, sys
+if sys.version_info[0] < 3:
+    raise RuntimeError("Must be using Python 3")
 try:
     import gzip
     gzImported = True
