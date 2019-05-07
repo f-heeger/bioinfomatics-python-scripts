@@ -3,8 +3,6 @@ import sys
 import time
 import re
 
-from suds.client import Client as SoapClient
-from suds import plugin
 
 from Bio import Entrez
 from Bio.Entrez.Parser import ValidationError
