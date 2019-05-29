@@ -192,6 +192,8 @@ if __name__ == "__main__":
         parser.error("Options -e can only be used with -i.")
     if (options.random and options.neg):
         parser.error("Negative mode does not work with random mode.")
+    if (options.random and len(args) < 1):
+        parser.error("Pipe mode (no input file given) does not work with random mode.")
     if (options.ignore_at and options.random):
         parser.error("Ignoring \"@\" (-a) is not meaningful in random mode.")
     
