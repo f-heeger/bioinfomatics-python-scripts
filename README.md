@@ -158,6 +158,28 @@ From a set of single end or paired end reads in a fasta or fastq file (or two fo
 
 Trim (paired end) reads in a variety of ways. Does not support gzipped input, yet.
 
+### primerRecognition
+
+>usage: primerRecognition.py [-h] [-o OUT] [-g] [-p PRE] [-m MAX] length path  
+>  
+>Try to recognize a possible primer sequence from the starting bases of a read  
+>file in fastq[.gz] format  
+>  
+>positional arguments:  
+>  length                up to which position should be analysed for the primer  
+>  path                  where to look for fastq files  
+>  
+>optional arguments:  
+>  -h, --help            show this help message and exit  
+>  -o OUT, --out OUT     write results to this file  
+>  -g, --gz              input files are gzipped  
+>  -p PRE, --pre-computed PRE  
+>                        give a file of precomputed data here  
+>  -m MAX, --max-reads MAX  
+>                        maximum number of reads to read per file (0 for all)  
+
+Analyzes the first X bases of each read in multiple fastq files to guess the primers used (per sample). Primer sequences are given in IUPAC ambiguity codes and represent 9
+
 ## Modules
 
 ### NcbiTools
