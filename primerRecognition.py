@@ -26,7 +26,7 @@ iupac = {
 "ACGT": "N"
 }
 
-def readData(inFileList, length, gz=True, maxReads=0):
+def readData(inFileList, length, form="fastq", gz=True, maxReads=0):
     data = {}
     if maxReads == 0:
         maxReads = float("Inf")
@@ -39,7 +39,7 @@ def readData(inFileList, length, gz=True, maxReads=0):
         else:
             oFunc = open
         with oFunc(inFile, "rt") as inStream:
-            for r, rec in enumerate(SeqIO.parse(inStream, "fastq")):
+            for r, rec in enumerate(SeqIO.parse(inStream, form)):
                 if r > maxReads:
                     break
                 for i in range(length):
@@ -110,7 +110,9 @@ if __name__ == "__main__":
     aParser.add_argument("-o", "--out", help="write results to this file",
                          default=None)
     aParser.add_argument("-g", "--gz", help="input files are gzipped", 
-                         action="store_true", default=True)
+                         action="store_true", default=False)
+    aParser.add_argument("-a", "--fasta", help="input files are fasta instead of fastq", 
+                         action="store_true", default=False)
     aParser.add_argument("-p", "--pre-computed", dest="pre",
                          help="give a file of precomputed data here",
                          default=None)
@@ -131,11 +133,19 @@ if __name__ == "__main__":
         if args.pre:
             data = loadData(args.pre)
         else:
-            if args.gz:
-                fList = [f for f in glob.glob(args.path) if f.endswith(".fastq.gz")]
+            if args.fasta:
+                form = "fasta"
             else:
-                fList = [f for f in glob.glob(args.path) if f.endswith(".fastq")]
-            data = readData(fList, args.length, args.gz, args.max)
+                form = "fastq"
+            if args.gz:
+                gz = ".gz"
+            else:
+                gz = ""
+            print(form, gz)
+            fList = [f for f in glob.glob(args.path) if f.endswith(".%s%s" % (form, gz))]
+            if len(fList) == 0:
+                sys.stderr.write("No files found at path '%s'. Was searching for files ending with '.%s%s'\n" % (args.path, form, gz))
+            data = readData(fList, args.length, form, args.gz, args.max)
         
         #save data
         saveData(data, (args.length, args.max, args.represented*100), "nucDist.tsv")
