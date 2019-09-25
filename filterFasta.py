@@ -32,8 +32,14 @@ def filterLengthIdList(inStream, outPath, format, minLength=None,
                        ignoreAt=False, log=sys.stderr):
     if not idList is None:
         if ignoreAt:
-            log.write("Ignoring all \"@\" signs at the start of IDs\n")
-            idList = [rId.lstrip("@") for rId in idList]
+            if format == "fastq":
+                log.write("Ignoring all \"@\" signs at the start of IDs\n")
+                idList = [rId.lstrip("@") for rId in idList]
+            elif format == "fasta":
+                log.write("Ignoring all \">\" signs at the start of IDs\n")
+                idList = [rId.lstrip(">") for rId in idList]
+            else:
+                raise AttributeError("Unknown format: %s" % format)
         if regex:
             idRes = [re.compile(x) for x in idList]
         else:
@@ -171,12 +177,12 @@ if __name__ == "__main__":
                        default=False, 
                        help="use regular expression instead of exact "
                             "matching for IDs",)
-    parser.add_option("-a", "--ignore-at",
+    parser.add_option("-a", "--ignore-header-start",
                        action="store_true", dest="ignore_at",
                        default=False, 
                        help="ignore the first letter of the query IDs if it is "
-                            "an @ (this is for more convenient filter list "
-                            "creation from fastq files)",)
+                            "an @ or > (this is for more convenient filter list "
+                            "creation from fastq of fasta files)",)
     parser.add_option("-n", "--negative",
                        action="store_true", dest="neg",
                        default=False, 
