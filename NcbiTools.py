@@ -88,14 +88,14 @@ class NcbiMap(dict):
     def load(self):
         if not self.useCache:
             raise CacheNotUsedError()
-        with open(self.cachePath, "rb") as inFile:
+        with open(self.cachePath, "rt") as inFile:
             for row in csv.reader(inFile, delimiter=",", quotechar="\""):
                 self[row[0]] = row[1]
     
     def save(self):
         if not self.useCache:
             raise CacheNotUsedError()
-        with open(self.cachePath, "wb") as out:
+        with open(self.cachePath, "wt") as out:
             writer = csv.writer(out, delimiter=",", quotechar="\"", 
                                 quoting=csv.QUOTE_MINIMAL)
             for key, value in self.items():
@@ -167,18 +167,19 @@ class TaxonomyNodeName2TaxId(NcbiMap):
         for name, taxList in self.items():
             for tax in taxList:
                 tab.append([name, tax])
-        with open(self.cachePath, "wb") as out:
+        with open(self.cachePath, "wt") as out:
             for row in tab:
                 out.write(",".join([str(field) for field in row])+"\n")
     
     def load(self):
         if not self.useCache:
             raise CacheNotUsedError()
-        for row in csv.reader(open(self.cachePath, "r")):
-            name, tax = row
-            if tax not in self:
-                self[tax] = set()
-            self[tax].add(name)
+        with open(self.cachePath, "rt") as inStream:
+            for row in csv.reader(inStream):
+                name, tax = row
+                if tax not in self:
+                    self[tax] = set()
+                self[tax].add(name)
 
 class LineageMap(NcbiMap):
     """Map NCBI taxonomy IDs to full lineage information from NCBI taxonomy.
@@ -218,11 +219,12 @@ class LineageMap(NcbiMap):
     def load(self):
         if not self.useCache:
             raise CacheNotUsedError()
-        for row in csv.reader(open(self.cachePath, "r")):
-            tax, rank, lTax, lName = row
-            if tax not in self:
-                self[tax] = []
-            self[tax].append((rank, lTax, lName))
+        with open(self.cachePath, "r") as inStream:
+            for row in csv.reader(inStream):
+                tax, rank, lTax, lName = row
+                if tax not in self:
+                    self[tax] = []
+                self[tax].append((rank, lTax, lName))
 
 class SingleLevelLineageMap(LineageMap):
     """Map NCBI taxonomy ID to a certain taxonomic level.

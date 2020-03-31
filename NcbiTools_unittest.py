@@ -95,9 +95,9 @@ class Nucl2taxIdTest(mapTest, unittest.TestCase):
 class Prot2nameTest(mapTest, unittest.TestCase):
     def setUp(self):
         self.testSet = [(684157356, "hypothetical protein HMPREF1120_00314 [Exophiala dermatitidis NIH/UT8656]"),
-                        (918400562, "hemoglobin [Homo sapiens]"),
+                        (918400562, "beta globin, partial [Homo sapiens]"),
                         (190663721, "laccase, partial [Clavariopsis aquatica]"),
-                        (284794136, "Chain F, Crystal Structure Of Zaire Ebola Vp35 Interferon Inhibitory Domain K339a Mutant")
+                        (284794136, "Chain F, Polymerase Cofactor Vp35")
                        ]
         self.map = ProtId2ProtNameMap(email)
 
@@ -118,7 +118,7 @@ class LcnTest(unittest.TestCase):
                         ([2, 414713,85026, 1760], "1760"),
                         ]
         self.tree = NcbiTaxonomyTree(email,
-                                     "/home/heeger/data/ncbi_tax/tax2parent.db")
+                                     "/tmp/tax2parent.db")
 
     def runTest(self):
         for inData, outData in self.testSet:
@@ -130,15 +130,19 @@ class LineageMapTest(unittest.TestCase):
 
     def test_succeed(self):
         #polar bear <-> brown bear
-        lineages = zip(self.map[9644], self.map[29073])
-        for tupA, tupB in lineages[:-1]:
+        pLin = self.map[9644]
+        bLin = self.map[29073]
+        lineages = zip(pLin[:-1], bLin[:-1])
+        for tupA, tupB in lineages:
             self.assertTupleEqual(tupA, tupB)
-        self.assertNotEqual(*lineages[-1])
+        self.assertNotEqual(pLin[-1], bLin[-1])
         #E. coli <-> E. alberti
-        lineages = zip(self.map[562], self.map[208962])
-        for tupA, tupB in lineages[:-1]:
+        cLin = self.map[562]
+        aLin = self.map[208962]
+        lineages = zip(cLin[:-1], aLin[:-1])
+        for tupA, tupB in lineages:
             self.assertTupleEqual(tupA, tupB)
-        self.assertNotEqual(*lineages[-1])
+        self.assertNotEqual(aLin[-1], cLin[-1])
     
     @unittest.expectedFailure
     def test_fail(self):

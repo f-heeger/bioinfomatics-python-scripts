@@ -1,4 +1,5 @@
 from sqlite3 import connect
+import atexit
 
 class SqliteCache(object):
     
@@ -26,8 +27,9 @@ class SqliteCache(object):
             c.executemany("INSERT INTO %(table)s VALUES (?,?)" % self.conf,
                           indict.items())
             self.conn.commit()
+        atexit.register(self.close)
         
-    def __del__(self):
+    def close(self):
         self.conn.close()
     
     def __setitem__(self, key, value):
@@ -95,8 +97,9 @@ class SqliteListCache(object):
                 c.executemany("INSERT INTO %(table)s VALUES (?,?)" % self.conf,
                               param)
             self.conn.commit()
+        atexit.register(self.close)
         
-    def __del__(self):
+    def close(self):
         self.conn.close()
     
     def __setitem__(self, key, valueList):
