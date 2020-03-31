@@ -2,6 +2,7 @@ import csv
 import sys
 import time
 import re
+import atexit
 
 from suds.client import Client as SoapClient
 from suds import plugin
@@ -51,6 +52,7 @@ class NcbiMap(dict):
             except IOError:
                 pass
                 #this happens if no cache was saved previously
+            atexit.register(self.save)
         self.retry = retry
        
         
@@ -102,9 +104,6 @@ class NcbiMap(dict):
             for key, value in self.items():
                 writer.writerow([str(key), str(value)])
 
-#    def __del__(self):
-#        if self.useCache:
-#            self.save()
 
 #TODO: rwrite for non soap version
 #class NcbiSoapBatchMap(NcbiMap):
