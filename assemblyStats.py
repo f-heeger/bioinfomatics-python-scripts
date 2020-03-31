@@ -6,6 +6,7 @@ except ImportError:
     gzImported = False
 
 from Bio.SeqIO import parse
+from Bio.SeqUtils import GC
 
 def assemblyStats(contLenTable):
     """Compute assembly stats from a table of contig IDs and length"""
@@ -23,7 +24,7 @@ def readFasta(inStream):
     """Read fasta file and save a table with sequence IDs and sequence length"""
     out = []
     for record in parse(inStream, "fasta"):
-        out.append((record.id, len(record)))
+        out.append((record.id, len(record), GC(record.seq), record.seq.count("N")))
     return out
     
 if __name__ == "__main__":
@@ -55,9 +56,11 @@ if __name__ == "__main__":
     lenSum = sum([c[1] for c in tab])
     maxLen = max([c[1] for c in tab])
     minLen = min([c[1] for c in tab])
+    avgGC = sum([c[2] for c in tab])/float(len(tab))
+    nSum = sum([c[3] for c in tab])
     if options.tabular:
-        print("%s\t%i\t%i\t%i\t%i\t%i\t%i" 
-              % (args[0], len(tab), l50, n50, lenSum, maxLen, minLen))
+        print("%s\t%i\t%i\t%i\t%i\t%i\t%i\t%f\t%i" 
+              % (args[0], len(tab), l50, n50, lenSum, maxLen, minLen, gc, nSum))
     else:
         print("Number of contigs:           %15i" % len(tab))
         print("N50 length (normally used):  %15i bp" % l50)
@@ -65,3 +68,5 @@ if __name__ == "__main__":
         print("Total length of all contigs: %15i bp" % lenSum)
         print("Longest contig:              %15i bp" % maxLen)
         print("Shortest contig:             %15i bp" % minLen)
+        print("GC content:                  %15.2f %%" % avgGC)
+        print("Total number of Ns:          %15i" % nSum)

@@ -50,6 +50,10 @@ class SciNam2IdTest(mapTest, unittest.TestCase):
                         ("Clavariopsis aquatica", "253306"),
                        ]
         self.map = SpeciesName2TaxId(email, retry=3)
+    
+    @unittest.expectedFailure
+    def test_fail(self):
+        self.map["Ajellomyces capsulatus"]
 
 class TaxIdToSpeciesNameTest(mapTest, unittest.TestCase):
     def setUp(self):

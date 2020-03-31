@@ -1,4 +1,6 @@
 import os, sys
+if sys.version_info[0] < 3:
+    raise RuntimeError("Must be using Python 3")
 try:
     import gzip
     gzImported = True
@@ -108,9 +110,9 @@ if __name__ == "__main__":
         fileType = "fastq"
     
     if gzImported and options.gzip:
-        inStream = gzip.open(args[0], "r")
+        inStream = gzip.open(args[0], "rt")
     else:
-        inStream = open(args[0], "r")
+        inStream = open(args[0], "rt")
     
     stats = getStats(inStream, fileType, sys.stderr)
     

@@ -141,7 +141,10 @@ class SpeciesName2TaxId(NcbiMap):
     def readResponse(self, resp, key):
         if int(resp["Count"]) > 1:
             self[key] = None
-            raise ValueError("Problem with key: %s. It got multiple answers.")
+            raise ValueError("Problem with key: %s. It got multiple answers." % key)
+        if int(resp["Count"]) == 0:
+            self[key] = None
+            raise ValueError("Problem with key: %s. It gave no answer." % key)
         self[key] = resp["IdList"][0]
 
 class TaxonomyNodeName2TaxId(NcbiMap):

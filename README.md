@@ -31,6 +31,9 @@ Normally write human readable output. With the -t option a tabular format of the
 >  -r X, --random=X      randomly sample X sequence from input file  
 >  -e, --regexp          use regular expression instead of exact matching for  
 >                        IDs  
+>  -a, --ignore-at       ignore the first letter of the query IDs if it is an @
+>                        (this is for more convenient filter list creation from
+>                        fastq files)  
 >  -n, --negative        do exactly the opposite of what would normally be done  
 
 Filter fasta/fastq files in different way.
@@ -43,6 +46,11 @@ Only write sequences with an ID from the list given. The list can either be give
 Write a random subset of the sequences of the given size.
 
 The `-n` option will switch to negative mode. Meaning the script will do exactly the oposite it normally does.
+
+The `-a` option is will make the script ignore @-signs at the begining of IDs in the ID list.
+The main use case for this is with two fastq files (A.fq and B.fq) and all your ID lines start with @M01271 (because M01271 is the serial number of your sequencer). If we want to keep in B only the sequences that are also in A, we can run the following:
+>grep "^@M01271" A.fq > id_list.txt
+>python filterFasta.py -i id_list.txt -a B.fq > B_and_A.fq
 
 Input data can be provided as a file (first argument) or be piped in.
 
@@ -150,6 +158,28 @@ From a set of single end or paired end reads in a fasta or fastq file (or two fo
 
 Trim (paired end) reads in a variety of ways. Does not support gzipped input, yet.
 
+### primerRecognition
+
+>usage: primerRecognition.py [-h] [-o OUT] [-g] [-p PRE] [-m MAX] length path  
+>  
+>Try to recognize a possible primer sequence from the starting bases of a read  
+>file in fastq[.gz] format  
+>  
+>positional arguments:  
+>  length                up to which position should be analysed for the primer  
+>  path                  where to look for fastq files  
+>  
+>optional arguments:  
+>  -h, --help            show this help message and exit  
+>  -o OUT, --out OUT     write results to this file  
+>  -g, --gz              input files are gzipped  
+>  -p PRE, --pre-computed PRE  
+>                        give a file of precomputed data here  
+>  -m MAX, --max-reads MAX  
+>                        maximum number of reads to read per file (0 for all)  
+
+Analyzes the first X bases of each read in multiple fastq files to guess the primers used (per sample). Primer sequences are given in IUPAC ambiguity codes and represent 9
+
 ## Modules
 
 ### NcbiTools
@@ -245,6 +275,9 @@ Maps KEGG gene IDs to KEGG pathway IDs via the KEGG REST API. Uses the `link` op
 #### KeggPathwayIdToNameMap
 Maps KEGG pathway IDs (wihtout the `path:` prefix) to their name via the KEGG REST API. 
 
+#### KeggPathwayIdToNameMap
+Maps KEGG KO IDs (`K[0-9]{5}`) to their "definition" via the KEGG REST API. 
+
 #### KeggReactionIdToEcMap
 Maps KEGG reaction IDs to the [Enzyme Comission (EC) numbers](http://www.chem.qmul.ac.uk/iubmb/enzyme/) of the involved enzymes. Returns a set of EC numbers as strings or `None` if no information was found. Input must be a KEGG reaction ID (R\[0-9\]{5})
 
@@ -259,3 +292,6 @@ Maps KEGG Onthology groups (KOs) to the [Enzyme Comission (EC) numbers](http://w
 
 #### KeggEcToPathwayMap
 Maps [Enzyme Comission (EC) numbers](http://www.chem.qmul.ac.uk/iubmb/enzyme/) to KEGG pathway IDs vis the KEGG Rest API. Uses the `link` operation. Returns a set of pathway IDs as strings without the `path:` prefix. (or an empty set if no link is found). The key must be a EC nubmer in KEGG format (ec:[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+).
+
+#### KeggEcToKoMap
+Maps [Enzyme Comission (EC) numbers](http://www.chem.qmul.ac.uk/iubmb/enzyme/) to KEGG Orthology (KO) IDs vis the KEGG Rest API. Uses the `link` operation. Returns a set of KO IDs as strings without the `ko:` prefix. (or an empty set if no link is found or the EC number does not exist). The key must be a EC nubmer in KEGG format (ec:[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+).

@@ -282,6 +282,37 @@ class CachedKeggPathwayIdToNameMap(MultiCachedDict):
                                value="pathName")
         MultiCachedDict.__init__(self, None, [database, kegg])
 
+class KeggKoIdToDefMap(KeggMap):
+    """Maps KEGG KO IDs to the KO definition via the KEGG Rest API.
+    
+    """ 
+    
+    baseUrl = "http://rest.kegg.jp/get"
+    
+    def requestFunction(self, pathwayId):
+        return urlopen("%s/%s" % (self.baseUrl, pathwayId))
+    
+    def readResponse(self, resp, key):
+        if len(resp.strip()) == 0:
+            raise KeyError("No response from KEGG for KO: %s" % key)
+        else:
+            for line in resp.split("\n"):
+                if line[0] in [" ","/"]:
+                    #continued field from line before or end of entry
+                    continue
+                field, value = line.split(None,1)
+                if field == "DEFINITION":
+                    self[key] = value.strip("\n")
+                    break
+
+class CachedKeggKoIdToDefMap(MultiCachedDict):
+    def __init__(self, dbPath):
+        kegg = KeggKoIdToDefMap(useCache=False)
+        database = SqliteCache(filePath=dbPath, indict=None, 
+                               table="keggkoId2def", key="koId", 
+                               value="koDef")
+        MultiCachedDict.__init__(self, None, [database, kegg])
+
 class KeggReactionIdToEcMap(KeggSetMap):
     """Mapp KEGG reaction ID to the involved enzyms EC numbers via the KEGG 
     Rest API.
@@ -374,6 +405,36 @@ class CachedKeggEcToPathwayMap(MultiCachedDict):
         database = SqliteListCache(filePath=dbPath, indict=None, 
                                table="keggEc2pathway", key="ec", 
                                value="pathway")
+        MultiCachedDict.__init__(self, None, [database, kegg])
+
+class KeggEcToKoMap(KeggSetMap):
+    """Maps EC number to KEGG KO IDs via the KEGG Rest API.
+    
+    The return value is a set of the IDs of all KO the EC number is assigned to.
+    KO IDs are given without the "ko" prefix. If the EC number is not assigned 
+    to any KOs (or does not exist) an empty list is returned.
+    """
+    baseUrl = "http://rest.kegg.jp/link/ko"
+                
+    def requestFunction(self, ec):
+        return urlopen("%s/%s" % (self.baseUrl, ec))
+    
+    def readResponse(self, resp, key):
+        kos = set([])
+        for line in resp.split("\n"):
+            if len(line.strip()) == 0:
+                continue #skip empty lines
+            ec, koStr = line.strip().split()
+            ko = koStr.split(":")[1]
+            kos.add(ko)
+        self[key] = kos
+
+class CachedKeggEcToKoMap(MultiCachedDict):
+    def __init__(self, dbPath):
+        kegg = KeggECToKoMap(useCache=False)
+        database = SqliteListCache(filePath=dbPath, indict=None, 
+                               table="keggEc2ko", key="ec", 
+                               value="ko")
         MultiCachedDict.__init__(self, None, [database, kegg])
 
 class AmbiguityWarning(UserWarning):

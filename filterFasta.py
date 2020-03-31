@@ -15,7 +15,7 @@ from Bio import SeqIO
 
 def filterFasta(inStream, outPath, minLength=None, idList=None, 
                 random=None, fastq=False, regex=False, neg=False, 
-                noWarn=False, log=sys.stderr):
+                noWarn=False, ignoreAt=False, log=sys.stderr):
     if fastq:
         format = "fastq"
     else:
@@ -24,13 +24,22 @@ def filterFasta(inStream, outPath, minLength=None, idList=None,
         sampleRandom(inStream, outPath, format, random, log)
     else:
         filterLengthIdList(inStream, outPath, format, minLength, idList, 
-                           regex, neg, noWarn, log)
+                           regex, neg, noWarn, ignoreAt, log)
     
 
 def filterLengthIdList(inStream, outPath, format, minLength=None, 
                        idList=None, regex=False, neg=False, noWarn=False, 
-                       log=sys.stderr):
+                       ignoreAt=False, log=sys.stderr):
     if not idList is None:
+        if ignoreAt:
+            if format == "fastq":
+                log.write("Ignoring all \"@\" signs at the start of IDs\n")
+                idList = [rId.lstrip("@") for rId in idList]
+            elif format == "fasta":
+                log.write("Ignoring all \">\" signs at the start of IDs\n")
+                idList = [rId.lstrip(">") for rId in idList]
+            else:
+                raise AttributeError("Unknown format: %s" % format)
         if regex:
             idRes = [re.compile(x) for x in idList]
         else:
@@ -168,7 +177,12 @@ if __name__ == "__main__":
                        default=False, 
                        help="use regular expression instead of exact "
                             "matching for IDs",)
-      
+    parser.add_option("-a", "--ignore-header-start",
+                       action="store_true", dest="ignore_at",
+                       default=False, 
+                       help="ignore the first letter of the query IDs if it is "
+                            "an @ or > (this is for more convenient filter list "
+                            "creation from fastq of fasta files)",)
     parser.add_option("-n", "--negative",
                        action="store_true", dest="neg",
                        default=False, 
@@ -184,6 +198,10 @@ if __name__ == "__main__":
         parser.error("Options -e can only be used with -i.")
     if (options.random and options.neg):
         parser.error("Negative mode does not work with random mode.")
+    if (options.random and len(args) < 1):
+        parser.error("Pipe mode (no input file given) does not work with random mode.")
+    if (options.ignore_at and options.random):
+        parser.error("Ignoring \"@\" (-a) is not meaningful in random mode.")
     
     if options.quiet:
         log = None
@@ -241,7 +259,7 @@ if __name__ == "__main__":
     try:                
         filterFasta(inStream, out, options.minLength, idList, options.random, 
                     options.fastq, options.regexp, options.neg, options.noWarn, 
-                    log=log)
+                    options.ignore_at, log=log)
     finally:
         if len(args) > 0:
             inStream.close()
