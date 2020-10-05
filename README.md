@@ -180,6 +180,25 @@ Trim (paired end) reads in a variety of ways. Does not support gzipped input, ye
 
 Analyzes the first X bases of each read in multiple fastq files to guess the primers used (per sample). Primer sequences are given in IUPAC ambiguity codes and represent 9
 
+### splitFasta
+
+>usage: splitFasta.py [-h] (-p X | -n X | -s) [-u] [-z] INFILE  
+>  
+>Split fast[a|q] file into multiple files.  
+>  
+>positional arguments:  
+>  INFILE               fast[a|q] file to split  
+  
+>optional arguments:  
+>  -h, --help           show this help message and exit  
+>  -p X, --pieces X     split sequence to X pieces  
+>  -n X, --number X     split sequence to pieces with X reads  
+>  -s, --single-record  split a every record  
+>  -u, --fastq          input file is in fastq format  
+>  -z, --gzip           input file is gzipped  
+
+Split multi fasta or multi fastq file into several files by a) splitting it into a certain number of pieces (-p), b) splitting it into files with a certain number of sequences (-n) or putting each sequence into its own file (-s).
+
 ## Modules
 
 ### NcbiTools
