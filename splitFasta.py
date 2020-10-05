@@ -4,7 +4,7 @@ import argparse
 
 from Bio import SeqIO
 
-def splitFasta(fastaPath, pieces=2, number=None, sequential=False, form="fasta", gzip=False):
+def splitFasta(fastaPath, pieces=2, number=None, form="fasta", gzip=False):
     
     if gzip:
         tOpen = gz.open
@@ -33,10 +33,7 @@ def splitFasta(fastaPath, pieces=2, number=None, sequential=False, form="fasta",
         else:
             path = fastaPath.rsplit(".", 1)[0]
             ext = form
-        if sequential:
-            path += "_%i.%s" % (p, ext)
-        else:
-            path += "_%i.%s" % (start, ext)
+        path += "_%i.%s" % (start, ext)
         out = open(path ,"w")
         p+=1
         try:
@@ -108,4 +105,4 @@ if __name__ == "__main__":
     if args.each:
         splitMultiFasta(args.infile[0], form, args.gzip)
     else:
-        splitFasta(args.infile[0], args.pieces, args.number, args.sequential, form, args.gzip)
+        splitFasta(args.infile[0], args.pieces, args.number, form, args.gzip)
